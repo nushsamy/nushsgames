@@ -1,0 +1,70 @@
+// Prisma schema for the spelling bee game logic layer.
+// See prisma.config.ts for datasource url / migrations path configuration.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum BeeStatus {
+  created
+  in_progress
+  completed
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  spellingBees SpellingBee[]
+
+  @@map("users")
+}
+
+model SpellingBee {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  user         User      @relation(fields: [userId], references: [id])
+  title        String
+  totalRounds  Int
+  gamekey      String?   @unique
+  status       BeeStatus @default(created)
+  currentRound Int       @default(0)
+  createdAt    DateTime  @default(now())
+
+  participants Participant[]
+  rounds       BeeRound[]
+
+  @@index([userId])
+  @@map("spelling_bees")
+}
+
+model Participant {
+  id           Int         @id @default(autoincrement())
+  beeId        Int
+  bee          SpellingBee @relation(fields: [beeId], references: [id], onDelete: Cascade)
+  name         String
+  isActive     Boolean     @default(true)
+  isEliminated Boolean     @default(false)
+
+  @@unique([beeId, name])
+  @@index([beeId])
+  @@map("participants")
+}
+
+model BeeRound {
+  id            String      @id @default(uuid())
+  beeId         Int
+  bee           SpellingBee @relation(fields: [beeId], references: [id], onDelete: Cascade)
+  roundNumber   Int
+  assignedWords Json
+
+  @@unique([beeId, roundNumber])
+  @@map("bee_rounds")
+}

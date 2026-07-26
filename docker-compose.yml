@@ -1,0 +1,34 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: spelling_bee
+      POSTGRES_PASSWORD: spelling_bee
+      POSTGRES_DB: spelling_bee_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spelling_bee -d spelling_bee_dev"]
+      interval: 2s
+      retries: 20
+
+  postgres-test:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: spelling_bee
+      POSTGRES_PASSWORD: spelling_bee
+      POSTGRES_DB: spelling_bee_test
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata_test:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spelling_bee -d spelling_bee_test"]
+      interval: 2s
+      retries: 20
+
+volumes:
+  pgdata:
+  pgdata_test:
