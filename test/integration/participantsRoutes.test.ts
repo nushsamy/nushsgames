@@ -4,9 +4,7 @@ import { testPrisma } from "../helpers/prismaTestClient.ts";
 import { resetDatabase } from "../helpers/resetDb.ts";
 import { startTestServer, type TestServer } from "../helpers/testServer.ts";
 import { authHeader } from "../helpers/authHelpers.ts";
-import { createTestUser, buildParticipants, answerCorrectly } from "../helpers/factories.ts";
-import { createBee, startBee } from "../../src/services/beeService.ts";
-import type { SpellingBee } from "../../generated/prisma/client.ts";
+import { createTestUser, buildStartedBee, buildParticipants, answerCorrectly } from "../helpers/factories.ts";
 
 let server: TestServer;
 
@@ -23,24 +21,13 @@ beforeEach(async () => {
   await resetDatabase(testPrisma);
 });
 
-async function buildStartedBeeForUser(userId: number): Promise<SpellingBee> {
-  const bee = await createBee(testPrisma, {
-    userId,
-    title: "Test Bee",
-    totalRounds: 1,
-    roundWords: [["apple", "banana"]],
-  });
-  return startBee(testPrisma, bee.id);
-}
-
 describe("POST /api/bees/:beeId/participants", () => {
   it("adds a participant to a started bee", async () => {
-    const user = await createTestUser(testPrisma);
-    const bee = await buildStartedBeeForUser(user.id);
+    const bee = await buildStartedBee(testPrisma);
 
     const res = await request(server.baseUrl)
       .post(`/api/bees/${bee.id}/participants`)
-      .set(authHeader(user.id))
+      .set(authHeader(bee.userId))
       .send({ name: "Alice" });
 
     expect(res.status).toBe(201);
@@ -51,15 +38,14 @@ describe("POST /api/bees/:beeId/participants", () => {
 
 describe("GET /api/bees/:beeId/participants", () => {
   it("splits participants into active and eliminated", async () => {
-    const user = await createTestUser(testPrisma);
-    const bee = await buildStartedBeeForUser(user.id);
+    const bee = await buildStartedBee(testPrisma);
     const [alice, bob] = await buildParticipants(testPrisma, bee.id, 2);
     await answerCorrectly(testPrisma, bee.id, alice.id);
     await answerCorrectly(testPrisma, bee.id, bob.id);
 
     const res = await request(server.baseUrl)
       .get(`/api/bees/${bee.id}/participants`)
-      .set(authHeader(user.id));
+      .set(authHeader(bee.userId));
 
     expect(res.status).toBe(200);
     expect(res.body.active).toHaveLength(2);
@@ -69,15 +55,14 @@ describe("GET /api/bees/:beeId/participants", () => {
 
 describe("PATCH /api/participants/:participantId", () => {
   it("rejects with 409 ROUND_IN_PROGRESS while turns remain in the round", async () => {
-    const user = await createTestUser(testPrisma);
-    const bee = await buildStartedBeeForUser(user.id);
+    const bee = await buildStartedBee(testPrisma);
     const [alice, bob] = await buildParticipants(testPrisma, bee.id, 2);
     // Alice has spelled, Bob has not -- round is not yet complete.
     await answerCorrectly(testPrisma, bee.id, alice.id);
 
     const res = await request(server.baseUrl)
       .patch(`/api/participants/${bob.id}`)
-      .set(authHeader(user.id))
+      .set(authHeader(bee.userId))
       .send({ isActive: false, isEliminated: true });
 
     expect(res.status).toBe(409);
@@ -85,15 +70,14 @@ describe("PATCH /api/participants/:participantId", () => {
   });
 
   it("allows a manual override once the round is complete", async () => {
-    const user = await createTestUser(testPrisma);
-    const bee = await buildStartedBeeForUser(user.id);
+    const bee = await buildStartedBee(testPrisma);
     const [alice, bob] = await buildParticipants(testPrisma, bee.id, 2);
     await answerCorrectly(testPrisma, bee.id, alice.id);
     await answerCorrectly(testPrisma, bee.id, bob.id);
 
     const res = await request(server.baseUrl)
       .patch(`/api/participants/${bob.id}`)
-      .set(authHeader(user.id))
+      .set(authHeader(bee.userId))
       .send({ isActive: true, isEliminated: false });
 
     expect(res.status).toBe(200);
@@ -102,22 +86,20 @@ describe("PATCH /api/participants/:participantId", () => {
   });
 
   it("rejects a nonsensical isActive+isEliminated combination with 400", async () => {
-    const user = await createTestUser(testPrisma);
-    const bee = await buildStartedBeeForUser(user.id);
+    const bee = await buildStartedBee(testPrisma);
     const [alice] = await buildParticipants(testPrisma, bee.id, 1);
 
     const res = await request(server.baseUrl)
       .patch(`/api/participants/${alice.id}`)
-      .set(authHeader(user.id))
+      .set(authHeader(bee.userId))
       .send({ isActive: true, isEliminated: true });
 
     expect(res.status).toBe(400);
   });
 
   it("returns 403 for a participant belonging to another user's bee", async () => {
-    const user = await createTestUser(testPrisma);
     const otherUser = await createTestUser(testPrisma);
-    const bee = await buildStartedBeeForUser(user.id);
+    const bee = await buildStartedBee(testPrisma);
     const [alice] = await buildParticipants(testPrisma, bee.id, 1);
     await answerCorrectly(testPrisma, bee.id, alice.id);
 

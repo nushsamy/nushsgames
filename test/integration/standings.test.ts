@@ -15,7 +15,7 @@ afterAll(async () => {
 
 describe("getStandings", () => {
   it("reports no winner while the bee is still in progress", async () => {
-    const bee = await buildStartedBee(testPrisma, { totalRounds: 2, roundWords: [["apple", "banana"], ["cherry", "date"]] });
+    const bee = await buildStartedBee(testPrisma, { roundWords: [["apple", "banana"], ["cherry", "date"]] });
     const [alice, bob] = await buildParticipants(testPrisma, bee.id, 2);
     await answerCorrectly(testPrisma, bee.id, alice.id);
     await answerCorrectly(testPrisma, bee.id, bob.id);
@@ -28,7 +28,6 @@ describe("getStandings", () => {
 
   it("plays a full multi-round bee down to a single winner", async () => {
     const bee = await buildStartedBee(testPrisma, {
-      totalRounds: 3,
       roundWords: [["apple", "banana", "cherry"], ["date", "eggplant"], ["fig"]],
     });
     const [alice, bob, carol] = await buildParticipants(testPrisma, bee.id, 3);
@@ -51,7 +50,7 @@ describe("getStandings", () => {
   });
 
   it("reports co-finalists with no winner when the last round ends with multiple active participants", async () => {
-    const bee = await buildStartedBee(testPrisma, { totalRounds: 1, roundWords: [["apple", "banana"]] });
+    const bee = await buildStartedBee(testPrisma, { roundWords: [["apple", "banana"]] });
     const [alice, bob] = await buildParticipants(testPrisma, bee.id, 2);
     await answerCorrectly(testPrisma, bee.id, alice.id);
     await answerCorrectly(testPrisma, bee.id, bob.id);

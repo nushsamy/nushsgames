@@ -4,8 +4,7 @@ import { io as ioClient, type Socket as ClientSocket } from "socket.io-client";
 import { testPrisma } from "../helpers/prismaTestClient.ts";
 import { resetDatabase } from "../helpers/resetDb.ts";
 import { startTestServer, type TestServer } from "../helpers/testServer.ts";
-import { createTestUser, buildParticipants, answerCorrectly, answerIncorrectly } from "../helpers/factories.ts";
-import { createBee, startBee } from "../../src/services/beeService.ts";
+import { buildStartedBee, buildParticipants, answerCorrectly, answerIncorrectly } from "../helpers/factories.ts";
 import { completeRoundAndProgress } from "../../src/services/roundService.ts";
 
 let server: TestServer;
@@ -39,15 +38,9 @@ async function joinRoom(gamekey: string): Promise<ClientSocket> {
   return client;
 }
 
-async function buildStartedBeeForUser(userId: number, roundWords: string[][] = [["apple", "banana"]]) {
-  const bee = await createBee(testPrisma, { userId, title: "Test", totalRounds: 1, roundWords });
-  return startBee(testPrisma, bee.id);
-}
-
 describe("POST /api/join/:gamekey", () => {
   it("adds a participant without any auth and broadcasts participant:added", async () => {
-    const user = await createTestUser(testPrisma);
-    const bee = await buildStartedBeeForUser(user.id);
+    const bee = await buildStartedBee(testPrisma);
     const display = await joinRoom(bee.gamekey!);
 
     const broadcast = waitForEvent<{ name: string }>(display, "participant:added");
@@ -61,8 +54,7 @@ describe("POST /api/join/:gamekey", () => {
   });
 
   it("rejects a duplicate name with 409", async () => {
-    const user = await createTestUser(testPrisma);
-    const bee = await buildStartedBeeForUser(user.id);
+    const bee = await buildStartedBee(testPrisma);
     await request(server.baseUrl).post(`/api/join/${bee.gamekey}`).send({ name: "Alice" });
 
     const res = await request(server.baseUrl).post(`/api/join/${bee.gamekey}`).send({ name: "alice" });
@@ -78,8 +70,7 @@ describe("POST /api/join/:gamekey", () => {
 
 describe("GET /api/gamekey/:gamekey/state", () => {
   it("reflects persisted state without ever exposing the current word or a verdict", async () => {
-    const user = await createTestUser(testPrisma);
-    const bee = await buildStartedBeeForUser(user.id);
+    const bee = await buildStartedBee(testPrisma);
     const [alice] = await buildParticipants(testPrisma, bee.id, 1);
 
     const res = await request(server.baseUrl).get(`/api/gamekey/${bee.gamekey}/state`);
@@ -97,8 +88,7 @@ describe("GET /api/gamekey/:gamekey/state", () => {
   });
 
   it("includes standings and a winner once the bee is completed", async () => {
-    const user = await createTestUser(testPrisma);
-    const bee = await buildStartedBeeForUser(user.id);
+    const bee = await buildStartedBee(testPrisma, { roundWords: [["apple", "banana"]] });
     const [alice, bob] = await buildParticipants(testPrisma, bee.id, 2);
     await answerCorrectly(testPrisma, bee.id, alice.id);
     await answerIncorrectly(testPrisma, bee.id, bob.id);

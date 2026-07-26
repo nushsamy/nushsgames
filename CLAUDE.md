@@ -17,19 +17,20 @@ The app uses a gamekey (random string like `BEE-A7F2K9`) to connect host and dis
 
 ## GAME FLOW
 
-1. Host logs in and creates a spelling bee (title, number of rounds, and the word list for each round)
-2. Host clicks "Start Bee" → system generates a unique gamekey
-3. Display operator joins via gamekey on a separate device (no login needed)
-4. Host enters participant names one by one
-5. Host clicks "Ready" → both host and display show "Round 1 • [Participant Name]'s turn"
-6. Host types the spelling as the participant spells it aloud → display shows the typing in real-time
-7. Host presses Enter → display shows the correct spelling + "CORRECT" or "INCORRECT" badge
+1. Host logs in and creates a spelling bee (title only)
+2. Host builds out the bee round by round: add a round, then set that round's word list — repeated for as many rounds as the bee needs. `totalRounds` is derived from however many rounds have been added, not chosen up front.
+3. Host clicks "Start Bee" → system generates a unique gamekey (requires at least one round, each with a non-empty word list)
+4. Display operator joins via gamekey on a separate device (no login needed)
+5. Host enters participant names one by one
+6. Host clicks "Ready" → both host and display show "Round 1 • [Participant Name]'s turn"
+7. Host types the spelling as the participant spells it aloud → display shows the typing in real-time
+8. Host presses Enter → display shows the correct spelling + "CORRECT" or "INCORRECT" badge
    - **If correct**: Participant advances to the next round
    - **If incorrect**: Participant is eliminated from the current round
-8. Display shows next participant, repeat until all participants in the round have spelled
-9. At round end, host can add new participants and click "Next Round"
-10. Game ends when all rounds are complete or only 1 participant remains
-11. Display shows final winner and standings
+9. Display shows next participant, repeat until all participants in the round have spelled
+10. At round end, host can add new participants and click "Next Round"
+11. Game ends when all rounds are complete or only 1 participant remains
+12. Display shows final winner and standings
 
 ---
 
@@ -66,13 +67,15 @@ The app uses a gamekey (random string like `BEE-A7F2K9`) to connect host and dis
 - id (INT, PK, auto-increment)
 - userId (FK → users)
 - title (VARCHAR)
-- totalRounds (INT)
+- totalRounds (INT, default 0) — derived automatically as rounds are added via the round-builder endpoint; the host never sets this directly
 - gamekey (VARCHAR, unique, generated on start)
 - status (ENUM: created | in_progress | completed)
 - currentRound (INT, default 0)
 - createdAt
 
 Word data is not stored on the bee — it lives entirely on each bee_round (see below), and rounds no longer need an equal word count.
+
+**Building a bee's rounds**: creating a bee no longer accepts rounds or words up front. The host builds a bee in three steps: (1) create the bee (title only), (2) add a round (creates a `bee_round` row with an empty word list and bumps `totalRounds`), (3) set that round's word list (overwrites `assignedWords`). Steps 2–3 repeat per round. Adding rounds/words is only allowed while the bee is still in the `created` status. Starting the bee validates that at least one round exists and that every round has a non-empty word list.
 
 **participants**
 - id (INT, PK, auto-increment)
@@ -85,7 +88,7 @@ Word data is not stored on the bee — it lives entirely on each bee_round (see 
 - id (UUID, PK)
 - beeId (FK → spelling_bees)
 - roundNumber (INT)
-- assignedWords (JSON array of words for this round — length can vary per round)
+- assignedWords (JSON array of words for this round — starts as an empty array when the round is added, populated by a separate "set round words" call; length can vary per round)
 
 Spelling attempts (responses) are not persisted: each attempt is checked against the current round's assigned word in real time and only the outcome (isActive/isEliminated on the participant) is written back. Nothing about individual attempts survives past that check.
 
@@ -127,7 +130,8 @@ spelling_bees (1) ──→ (many) bee_rounds
 - `/display/:gamekey` - Public display view (no auth, gamekey-based)
 
 **Host Control Panel Components:**
-- Bee config form (title, rounds, per-round word lists)
+- Bee config form (title only)
+- Round builder: add a round, then enter/paste that round's word list; repeat per round. `totalRounds` is just a read-only count of rounds added so far.
 - Gamekey display + copy button (shown after bee starts)
 - Current round indicator
 - Current participant name display (large, prominent)
@@ -155,12 +159,13 @@ spelling_bees (1) ──→ (many) bee_rounds
 
 ## KEY GAME LOGIC RULES
 
-1. **Spelling validation**: Case-insensitive comparison of user spelling vs correct spelling
-2. **Elimination**: On incorrect spelling in a round, participant is marked as eliminated for that round only (can re-join if host adds them to next round)
-3. **Round completion**: When all remaining active participants have spelled or been skipped
-4. **Gamekey generation**: Random cryptographically secure string, generated when bee starts, cleaned up when bee ends
-5. **Participant additions**: Can happen at the start of each round, not mid-round (except by explicit host action with modal)
-6. **Game end**: When all rounds complete OR only 1 participant remains active
+1. **Bee building**: Creating a bee takes only a title. Rounds and their word lists are added afterward, one round at a time (add round → set that round's words). `totalRounds` is derived from the number of rounds added, not specified by the host. Rounds/words can only be edited while the bee is in the `created` status; starting the bee requires at least one round, each with a non-empty word list.
+2. **Spelling validation**: Case-insensitive comparison of user spelling vs correct spelling
+3. **Elimination**: On incorrect spelling in a round, participant is marked as eliminated for that round only (can re-join if host adds them to next round)
+4. **Round completion**: When all remaining active participants have spelled or been skipped
+5. **Gamekey generation**: Random cryptographically secure string, generated when bee starts, cleaned up when bee ends
+6. **Participant additions**: Can happen at the start of each round, not mid-round (except by explicit host action with modal)
+7. **Game end**: When all rounds complete OR only 1 participant remains active
 
 ---
 
@@ -200,6 +205,7 @@ spelling_bees (1) ──→ (many) bee_rounds
 6. **Participants can be added multiple times** across rounds, so track which round they're in
 7. **Display should handle disconnections gracefully** with UI feedback and auto-reconnect
 8. **Word pool should support multiple formats**: paste-separated list, file upload, or manual entry
+9. **Bee creation is decoupled from round/word setup** - the host creates the bee (title only) first, then adds rounds and each round's word list afterward via separate calls; don't require word lists at bee-creation time
 
 ---
 

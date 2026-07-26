@@ -5,8 +5,7 @@ import { testPrisma } from "../helpers/prismaTestClient.ts";
 import { resetDatabase } from "../helpers/resetDb.ts";
 import { startTestServer, type TestServer } from "../helpers/testServer.ts";
 import { authHeader } from "../helpers/authHelpers.ts";
-import { createTestUser, buildParticipants } from "../helpers/factories.ts";
-import { createBee, startBee } from "../../src/services/beeService.ts";
+import { buildStartedBee, buildParticipants, createTestUser } from "../helpers/factories.ts";
 
 let server: TestServer;
 
@@ -39,15 +38,9 @@ async function joinRoom(gamekey: string): Promise<ClientSocket> {
   return client;
 }
 
-async function buildStartedBeeForUser(userId: number, roundWords: string[][] = [["apple", "banana"]]) {
-  const bee = await createBee(testPrisma, { userId, title: "Test", totalRounds: 1, roundWords });
-  return startBee(testPrisma, bee.id);
-}
-
 describe("POST /api/bees/:beeId/responses", () => {
   it("records a correct spelling and broadcasts response:submitted", async () => {
-    const user = await createTestUser(testPrisma);
-    const bee = await buildStartedBeeForUser(user.id);
+    const bee = await buildStartedBee(testPrisma);
     const [alice] = await buildParticipants(testPrisma, bee.id, 1);
     const display = await joinRoom(bee.gamekey!);
 
@@ -57,7 +50,7 @@ describe("POST /api/bees/:beeId/responses", () => {
     );
     const res = await request(server.baseUrl)
       .post(`/api/bees/${bee.id}/responses`)
-      .set(authHeader(user.id))
+      .set(authHeader(bee.userId))
       .send({ participantId: alice.id, userSpelling: "apple" });
 
     expect(res.status).toBe(200);
@@ -72,8 +65,7 @@ describe("POST /api/bees/:beeId/responses", () => {
   });
 
   it("records an incorrect spelling, eliminates the participant, and broadcasts both events", async () => {
-    const user = await createTestUser(testPrisma);
-    const bee = await buildStartedBeeForUser(user.id);
+    const bee = await buildStartedBee(testPrisma);
     const [alice] = await buildParticipants(testPrisma, bee.id, 1);
     const display = await joinRoom(bee.gamekey!);
 
@@ -82,7 +74,7 @@ describe("POST /api/bees/:beeId/responses", () => {
 
     const res = await request(server.baseUrl)
       .post(`/api/bees/${bee.id}/responses`)
-      .set(authHeader(user.id))
+      .set(authHeader(bee.userId))
       .send({ participantId: alice.id, userSpelling: "aple" });
 
     expect(res.status).toBe(200);
@@ -94,8 +86,7 @@ describe("POST /api/bees/:beeId/responses", () => {
   });
 
   it("rejects an out-of-turn submission with 409 and does not broadcast anything", async () => {
-    const user = await createTestUser(testPrisma);
-    const bee = await buildStartedBeeForUser(user.id);
+    const bee = await buildStartedBee(testPrisma);
     const [, bob] = await buildParticipants(testPrisma, bee.id, 2);
     const display = await joinRoom(bee.gamekey!);
 
@@ -107,7 +98,7 @@ describe("POST /api/bees/:beeId/responses", () => {
     // It's the first participant's turn (Alice), not Bob's.
     const res = await request(server.baseUrl)
       .post(`/api/bees/${bee.id}/responses`)
-      .set(authHeader(user.id))
+      .set(authHeader(bee.userId))
       .send({ participantId: bob.id, userSpelling: "banana" });
 
     expect(res.status).toBe(409);
@@ -120,9 +111,8 @@ describe("POST /api/bees/:beeId/responses", () => {
   });
 
   it("returns 403 for a bee owned by another user", async () => {
-    const user = await createTestUser(testPrisma);
     const otherUser = await createTestUser(testPrisma);
-    const bee = await buildStartedBeeForUser(user.id);
+    const bee = await buildStartedBee(testPrisma);
     const [alice] = await buildParticipants(testPrisma, bee.id, 1);
 
     const res = await request(server.baseUrl)
@@ -136,8 +126,7 @@ describe("POST /api/bees/:beeId/responses", () => {
 
 describe("POST /api/bees/:beeId/skip", () => {
   it("eliminates the participant with an empty spelling and broadcasts both events", async () => {
-    const user = await createTestUser(testPrisma);
-    const bee = await buildStartedBeeForUser(user.id);
+    const bee = await buildStartedBee(testPrisma);
     const [alice] = await buildParticipants(testPrisma, bee.id, 1);
     const display = await joinRoom(bee.gamekey!);
 
@@ -146,7 +135,7 @@ describe("POST /api/bees/:beeId/skip", () => {
 
     const res = await request(server.baseUrl)
       .post(`/api/bees/${bee.id}/skip`)
-      .set(authHeader(user.id))
+      .set(authHeader(bee.userId))
       .send({ participantId: alice.id });
 
     expect(res.status).toBe(200);

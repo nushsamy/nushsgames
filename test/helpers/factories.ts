@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { PrismaClient, SpellingBee, Participant } from "../../generated/prisma/client.ts";
-import { createBee, startBee, type CreateBeeInput } from "../../src/services/beeService.ts";
+import { createBee, startBee, getBeeById } from "../../src/services/beeService.ts";
 import { addParticipant } from "../../src/services/participantService.ts";
-import { getNextTurn } from "../../src/services/roundService.ts";
+import { getNextTurn, addRound, setRoundWords } from "../../src/services/roundService.ts";
 import { submitResponse, skipParticipant } from "../../src/services/responseService.ts";
 
 export const DEFAULT_ROUND_WORDS: string[][] = [
@@ -19,23 +19,31 @@ export async function createTestUser(prisma: PrismaClient) {
   });
 }
 
+export interface BuildBeeOptions {
+  title?: string;
+  /** One word list per round; roundWords[i] becomes round i + 1. Pass [] to build a bee with no rounds. */
+  roundWords?: string[][];
+}
+
 export async function buildBee(
   prisma: PrismaClient,
-  overrides: Partial<Omit<CreateBeeInput, "userId">> = {},
+  overrides: BuildBeeOptions = {},
 ): Promise<SpellingBee> {
+  const { title = "Test Bee", roundWords = DEFAULT_ROUND_WORDS } = overrides;
   const user = await createTestUser(prisma);
-  return createBee(prisma, {
-    userId: user.id,
-    title: "Test Bee",
-    totalRounds: DEFAULT_ROUND_WORDS.length,
-    roundWords: DEFAULT_ROUND_WORDS,
-    ...overrides,
-  });
+  const bee = await createBee(prisma, { userId: user.id, title });
+
+  for (const words of roundWords) {
+    const round = await addRound(prisma, bee.id);
+    await setRoundWords(prisma, bee.id, round.roundNumber, words);
+  }
+
+  return roundWords.length > 0 ? getBeeById(prisma, bee.id) : bee;
 }
 
 export async function buildStartedBee(
   prisma: PrismaClient,
-  overrides: Partial<Omit<CreateBeeInput, "userId">> = {},
+  overrides: BuildBeeOptions = {},
 ): Promise<SpellingBee> {
   const bee = await buildBee(prisma, overrides);
   return startBee(prisma, bee.id);

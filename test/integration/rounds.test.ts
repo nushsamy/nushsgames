@@ -15,7 +15,7 @@ afterAll(async () => {
 
 describe("getNextTurn / isRoundComplete", () => {
   it("returns participants in id order with the round's first words", async () => {
-    const bee = await buildStartedBee(testPrisma, { totalRounds: 1, roundWords: [["apple", "banana"]] });
+    const bee = await buildStartedBee(testPrisma, { roundWords: [["apple", "banana"]] });
     const [alice, bob] = await buildParticipants(testPrisma, bee.id, 2);
 
     const words = await getCurrentRoundWords(testPrisma, bee.id);
@@ -38,7 +38,7 @@ describe("getNextTurn / isRoundComplete", () => {
   });
 
   it("cycles words via modulo when there are more turns than words in the round", async () => {
-    const bee = await buildStartedBee(testPrisma, { totalRounds: 1, roundWords: [["apple", "banana"]] });
+    const bee = await buildStartedBee(testPrisma, { roundWords: [["apple", "banana"]] });
     const [alice, bob, carol] = await buildParticipants(testPrisma, bee.id, 3);
 
     expect((await getNextTurn(testPrisma, bee.id))?.word).toBe("apple");
@@ -50,7 +50,7 @@ describe("getNextTurn / isRoundComplete", () => {
   });
 
   it("skips eliminated participants when computing the next turn", async () => {
-    const bee = await buildStartedBee(testPrisma, { totalRounds: 2, roundWords: [["apple", "banana", "cherry"], ["date"]] });
+    const bee = await buildStartedBee(testPrisma, { roundWords: [["apple", "banana", "cherry"], ["date"]] });
     const [alice, bob, carol] = await buildParticipants(testPrisma, bee.id, 3);
 
     await answerIncorrectly(testPrisma, bee.id, alice.id);
@@ -68,13 +68,13 @@ describe("getNextTurn / isRoundComplete", () => {
 
 describe("completeRoundAndProgress", () => {
   it("throws RoundNotCompleteError if participants are still left to answer", async () => {
-    const bee = await buildStartedBee(testPrisma, { totalRounds: 2 });
+    const bee = await buildStartedBee(testPrisma);
     await buildParticipants(testPrisma, bee.id, 2);
     await expect(completeRoundAndProgress(testPrisma, bee.id)).rejects.toThrow(RoundNotCompleteError);
   });
 
   it("advances currentRound when more rounds remain and multiple participants are still active", async () => {
-    const bee = await buildStartedBee(testPrisma, { totalRounds: 2, roundWords: [["apple", "banana"], ["cherry", "date"]] });
+    const bee = await buildStartedBee(testPrisma, { roundWords: [["apple", "banana"], ["cherry", "date"]] });
     const [alice, bob] = await buildParticipants(testPrisma, bee.id, 2);
     await answerCorrectly(testPrisma, bee.id, alice.id);
     await answerCorrectly(testPrisma, bee.id, bob.id);
@@ -86,7 +86,7 @@ describe("completeRoundAndProgress", () => {
   });
 
   it("ends the bee when only one active participant remains", async () => {
-    const bee = await buildStartedBee(testPrisma, { totalRounds: 3, roundWords: [["apple", "banana"], ["cherry", "date"], ["eggplant", "fig"]] });
+    const bee = await buildStartedBee(testPrisma, { roundWords: [["apple", "banana"], ["cherry", "date"], ["eggplant", "fig"]] });
     const [alice, bob] = await buildParticipants(testPrisma, bee.id, 2);
     await answerIncorrectly(testPrisma, bee.id, alice.id);
     await answerCorrectly(testPrisma, bee.id, bob.id);
@@ -97,7 +97,7 @@ describe("completeRoundAndProgress", () => {
   });
 
   it("ends the bee when the final round completes even if multiple participants remain active", async () => {
-    const bee = await buildStartedBee(testPrisma, { totalRounds: 1, roundWords: [["apple", "banana"]] });
+    const bee = await buildStartedBee(testPrisma, { roundWords: [["apple", "banana"]] });
     const [alice, bob] = await buildParticipants(testPrisma, bee.id, 2);
     await answerCorrectly(testPrisma, bee.id, alice.id);
     await answerCorrectly(testPrisma, bee.id, bob.id);

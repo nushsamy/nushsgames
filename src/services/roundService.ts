@@ -1,7 +1,54 @@
-import type { PrismaClient, Prisma, Participant, SpellingBee } from "../../generated/prisma/client.ts";
-import { NotFoundError, InvalidBeeStateError, RoundNotCompleteError } from "../errors/index.ts";
+import type { PrismaClient, Prisma, Participant, SpellingBee, BeeRound } from "../../generated/prisma/client.ts";
+import { NotFoundError, InvalidBeeStateError, RoundNotCompleteError, ValidationError } from "../errors/index.ts";
 import { pickWordForTurn } from "../domain/wordAssignment.ts";
 import { getBeeById, endBee } from "./beeService.ts";
+
+export async function addRound(
+  prisma: PrismaClient,
+  beeId: number,
+): Promise<BeeRound> {
+  return prisma.$transaction(async (tx) => {
+    const bee = await getBeeById(tx, beeId);
+    if (bee.status !== "created") {
+      throw new InvalidBeeStateError(`Rounds can only be added while bee ${beeId} is "created"`);
+    }
+
+    const roundNumber = bee.totalRounds + 1;
+    const round = await tx.beeRound.create({
+      data: { beeId, roundNumber, assignedWords: [] },
+    });
+    await tx.spellingBee.update({ where: { id: beeId }, data: { totalRounds: roundNumber } });
+    return round;
+  });
+}
+
+export async function setRoundWords(
+  prisma: PrismaClient,
+  beeId: number,
+  roundNumber: number,
+  words: string[],
+): Promise<BeeRound> {
+  if (!Array.isArray(words) || words.length === 0 || words.some((word) => !word.trim())) {
+    throw new ValidationError("words must be a non-empty array of non-empty strings");
+  }
+
+  const bee = await getBeeById(prisma, beeId);
+  if (bee.status !== "created") {
+    throw new InvalidBeeStateError(`Round words can only be edited while bee ${beeId} is "created"`);
+  }
+
+  const round = await prisma.beeRound.findUnique({
+    where: { beeId_roundNumber: { beeId, roundNumber } },
+  });
+  if (!round) {
+    throw new NotFoundError(`Round ${roundNumber} for bee ${beeId} not found`);
+  }
+
+  return prisma.beeRound.update({
+    where: { id: round.id },
+    data: { assignedWords: words },
+  });
+}
 
 export interface NextTurn {
   participant: Participant;

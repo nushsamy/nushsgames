@@ -1,9 +1,16 @@
 import "dotenv/config";
 import { prisma } from "../src/db/client.ts";
 import { createBee, startBee } from "../src/services/beeService.ts";
+import { addRound, setRoundWords, completeRoundAndProgress } from "../src/services/roundService.ts";
 import { addParticipant } from "../src/services/participantService.ts";
 import { submitResponse, skipParticipant } from "../src/services/responseService.ts";
-import { completeRoundAndProgress } from "../src/services/roundService.ts";
+
+async function addRounds(beeId: number, roundWords: string[][]): Promise<void> {
+  for (const words of roundWords) {
+    const round = await addRound(prisma, beeId);
+    await setRoundWords(prisma, beeId, round.roundNumber, words);
+  }
+}
 
 async function main() {
   const host = await prisma.user.create({
@@ -11,28 +18,26 @@ async function main() {
   });
 
   // Bee 1: never started — exercises the bare "created" state.
-  await createBee(prisma, {
+  const fallRegional = await createBee(prisma, {
     userId: host.id,
     title: "Fall Regional Spelling Bee",
-    totalRounds: 3,
-    roundWords: [
-      ["necessary", "rhythm", "occasion", "separate", "definitely"],
-      ["accommodate", "embarrass", "committee", "restaurant", "vacuum"],
-      ["beginning", "existence", "privilege", "acquire", "conscience"],
-    ],
   });
+  await addRounds(fallRegional.id, [
+    ["necessary", "rhythm", "occasion", "separate", "definitely"],
+    ["accommodate", "embarrass", "committee", "restaurant", "vacuum"],
+    ["beginning", "existence", "privilege", "acquire", "conscience"],
+  ]);
 
   // Bee 2: in progress, mid-round.
   const midGame = await createBee(prisma, {
     userId: host.id,
     title: "Classroom Spelling Bee",
-    totalRounds: 3,
-    roundWords: [
-      ["apple", "banana"],
-      ["cherry", "date"],
-      ["eggplant", "fig"],
-    ],
   });
+  await addRounds(midGame.id, [
+    ["apple", "banana"],
+    ["cherry", "date"],
+    ["eggplant", "fig"],
+  ]);
   await startBee(prisma, midGame.id);
   const midAlice = await addParticipant(prisma, midGame.id, "Alice");
   const midBob = await addParticipant(prisma, midGame.id, "Bob");
@@ -45,12 +50,11 @@ async function main() {
   const finished = await createBee(prisma, {
     userId: host.id,
     title: "Summer Camp Spelling Bee",
-    totalRounds: 2,
-    roundWords: [
-      ["giraffe", "hippo"],
-      ["iguana", "jackal"],
-    ],
   });
+  await addRounds(finished.id, [
+    ["giraffe", "hippo"],
+    ["iguana", "jackal"],
+  ]);
   await startBee(prisma, finished.id);
   const finAlice = await addParticipant(prisma, finished.id, "Dana");
   const finBob = await addParticipant(prisma, finished.id, "Evan");

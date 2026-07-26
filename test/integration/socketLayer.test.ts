@@ -4,8 +4,7 @@ import { testPrisma } from "../helpers/prismaTestClient.ts";
 import { resetDatabase } from "../helpers/resetDb.ts";
 import { startTestServer, type TestServer } from "../helpers/testServer.ts";
 import { signAccessToken } from "../../src/http/jwt.ts";
-import { createBee, startBee } from "../../src/services/beeService.ts";
-import { createTestUser } from "../helpers/factories.ts";
+import { buildStartedBee, createTestUser } from "../helpers/factories.ts";
 
 let server: TestServer;
 
@@ -41,15 +40,9 @@ async function joinAndWait(
   return { client, role };
 }
 
-async function buildStartedBeeForUser(userId: number) {
-  const bee = await createBee(testPrisma, { userId, title: "Test", totalRounds: 1, roundWords: [["apple"]] });
-  return startBee(testPrisma, bee.id);
-}
-
 describe("socket join", () => {
   it("joins as display when no token is provided", async () => {
-    const user = await createTestUser(testPrisma);
-    const bee = await buildStartedBeeForUser(user.id);
+    const bee = await buildStartedBee(testPrisma);
 
     const { client, role } = await joinAndWait(bee.gamekey!);
     expect(role).toBe("display");
@@ -57,18 +50,16 @@ describe("socket join", () => {
   });
 
   it("joins as host when a valid access token for the bee owner is provided", async () => {
-    const user = await createTestUser(testPrisma);
-    const bee = await buildStartedBeeForUser(user.id);
+    const bee = await buildStartedBee(testPrisma);
 
-    const { client, role } = await joinAndWait(bee.gamekey!, signAccessToken(user.id));
+    const { client, role } = await joinAndWait(bee.gamekey!, signAccessToken(bee.userId));
     expect(role).toBe("host");
     client.disconnect();
   });
 
   it("falls back to display role for a token belonging to a different user", async () => {
-    const user = await createTestUser(testPrisma);
     const otherUser = await createTestUser(testPrisma);
-    const bee = await buildStartedBeeForUser(user.id);
+    const bee = await buildStartedBee(testPrisma);
 
     const { client, role } = await joinAndWait(bee.gamekey!, signAccessToken(otherUser.id));
     expect(role).toBe("display");
@@ -88,10 +79,9 @@ describe("socket join", () => {
 
 describe("role-gated relay events", () => {
   it("relays typing:update from a host socket to the room, but ignores it from a display socket", async () => {
-    const user = await createTestUser(testPrisma);
-    const bee = await buildStartedBeeForUser(user.id);
+    const bee = await buildStartedBee(testPrisma);
 
-    const { client: hostClient } = await joinAndWait(bee.gamekey!, signAccessToken(user.id));
+    const { client: hostClient } = await joinAndWait(bee.gamekey!, signAccessToken(bee.userId));
     const { client: displayClient } = await joinAndWait(bee.gamekey!);
 
     const displayReceived = waitForEvent<{ currentSpelling: string }>(displayClient, "typing:update");
@@ -111,11 +101,10 @@ describe("role-gated relay events", () => {
   });
 
   it("relays word:revealed only to the host room, never to display sockets", async () => {
-    const user = await createTestUser(testPrisma);
-    const bee = await buildStartedBeeForUser(user.id);
+    const bee = await buildStartedBee(testPrisma);
 
-    const { client: hostClient } = await joinAndWait(bee.gamekey!, signAccessToken(user.id));
-    const { client: secondHostClient } = await joinAndWait(bee.gamekey!, signAccessToken(user.id));
+    const { client: hostClient } = await joinAndWait(bee.gamekey!, signAccessToken(bee.userId));
+    const { client: secondHostClient } = await joinAndWait(bee.gamekey!, signAccessToken(bee.userId));
     const { client: displayClient } = await joinAndWait(bee.gamekey!);
 
     let displayReceivedWord = false;
@@ -138,10 +127,9 @@ describe("role-gated relay events", () => {
 
 describe("disconnect", () => {
   it("broadcasts client:disconnected to the rest of the room", async () => {
-    const user = await createTestUser(testPrisma);
-    const bee = await buildStartedBeeForUser(user.id);
+    const bee = await buildStartedBee(testPrisma);
 
-    const { client: hostClient } = await joinAndWait(bee.gamekey!, signAccessToken(user.id));
+    const { client: hostClient } = await joinAndWait(bee.gamekey!, signAccessToken(bee.userId));
     const { client: displayClient } = await joinAndWait(bee.gamekey!);
 
     const disconnected = waitForEvent<{ gamekey: string }>(displayClient, "client:disconnected");

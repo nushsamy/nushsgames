@@ -4,10 +4,20 @@ import { testPrisma } from "../helpers/prismaTestClient.ts";
 import { resetDatabase } from "../helpers/resetDb.ts";
 import { startTestServer, type TestServer } from "../helpers/testServer.ts";
 import { authHeader } from "../helpers/authHelpers.ts";
-import { createTestUser, DEFAULT_ROUND_WORDS } from "../helpers/factories.ts";
+import { createTestUser } from "../helpers/factories.ts";
 import { addParticipant } from "../../src/services/participantService.ts";
 
 let server: TestServer;
+
+async function addWordsRound(beeId: number, userId: number, words: string[] = ["apple"]): Promise<void> {
+  const roundRes = await request(server.baseUrl)
+    .post(`/api/bees/${beeId}/rounds`)
+    .set(authHeader(userId));
+  await request(server.baseUrl)
+    .put(`/api/bees/${beeId}/rounds/${roundRes.body.roundNumber}/words`)
+    .set(authHeader(userId))
+    .send({ words });
+}
 
 beforeAll(async () => {
   server = await startTestServer(testPrisma);
@@ -28,7 +38,7 @@ describe("POST /api/bees", () => {
     const res = await request(server.baseUrl)
       .post("/api/bees")
       .set(authHeader(user.id))
-      .send({ title: "Regional Bee", totalRounds: 2, roundWords: DEFAULT_ROUND_WORDS });
+      .send({ title: "Regional Bee" });
 
     expect(res.status).toBe(201);
     expect(res.body.userId).toBe(user.id);
@@ -38,7 +48,7 @@ describe("POST /api/bees", () => {
   it("rejects requests with no Authorization header", async () => {
     const res = await request(server.baseUrl)
       .post("/api/bees")
-      .send({ title: "Regional Bee", totalRounds: 2, roundWords: DEFAULT_ROUND_WORDS });
+      .send({ title: "Regional Bee" });
     expect(res.status).toBe(401);
   });
 });
@@ -50,11 +60,11 @@ describe("GET /api/bees", () => {
     await request(server.baseUrl)
       .post("/api/bees")
       .set(authHeader(user.id))
-      .send({ title: "Mine", totalRounds: 1, roundWords: [["a"]] });
+      .send({ title: "Mine" });
     await request(server.baseUrl)
       .post("/api/bees")
       .set(authHeader(otherUser.id))
-      .send({ title: "Theirs", totalRounds: 1, roundWords: [["b"]] });
+      .send({ title: "Theirs" });
 
     const res = await request(server.baseUrl).get("/api/bees").set(authHeader(user.id));
     expect(res.status).toBe(200);
@@ -70,7 +80,7 @@ describe("GET /api/bees/:beeId", () => {
     const create = await request(server.baseUrl)
       .post("/api/bees")
       .set(authHeader(user.id))
-      .send({ title: "Mine", totalRounds: 1, roundWords: [["a"]] });
+      .send({ title: "Mine" });
 
     const res = await request(server.baseUrl)
       .get(`/api/bees/${create.body.id}`)
@@ -89,7 +99,7 @@ describe("GET /api/bees/:beeId", () => {
     const create = await request(server.baseUrl)
       .post("/api/bees")
       .set(authHeader(user.id))
-      .send({ title: "Mine", totalRounds: 1, roundWords: [["apple"]] });
+      .send({ title: "Mine" });
 
     const res = await request(server.baseUrl)
       .get(`/api/bees/${create.body.id}`)
@@ -102,7 +112,8 @@ describe("GET /api/bees/:beeId", () => {
     const create = await request(server.baseUrl)
       .post("/api/bees")
       .set(authHeader(user.id))
-      .send({ title: "Mine", totalRounds: 1, roundWords: [["apple"]] });
+      .send({ title: "Mine" });
+    await addWordsRound(create.body.id, user.id, ["apple"]);
     await request(server.baseUrl).post(`/api/bees/${create.body.id}/start`).set(authHeader(user.id));
     await addParticipant(testPrisma, create.body.id, "Alice");
 
@@ -114,13 +125,76 @@ describe("GET /api/bees/:beeId", () => {
   });
 });
 
+describe("POST /api/bees/:beeId/rounds and PUT .../rounds/:roundNumber/words", () => {
+  it("adds sequential rounds and sets their words", async () => {
+    const user = await createTestUser(testPrisma);
+    const create = await request(server.baseUrl)
+      .post("/api/bees")
+      .set(authHeader(user.id))
+      .send({ title: "Mine" });
+
+    const round1 = await request(server.baseUrl)
+      .post(`/api/bees/${create.body.id}/rounds`)
+      .set(authHeader(user.id));
+    expect(round1.status).toBe(201);
+    expect(round1.body.roundNumber).toBe(1);
+    expect(round1.body.assignedWords).toEqual([]);
+
+    const round2 = await request(server.baseUrl)
+      .post(`/api/bees/${create.body.id}/rounds`)
+      .set(authHeader(user.id));
+    expect(round2.body.roundNumber).toBe(2);
+
+    const wordsRes = await request(server.baseUrl)
+      .put(`/api/bees/${create.body.id}/rounds/${round1.body.roundNumber}/words`)
+      .set(authHeader(user.id))
+      .send({ words: ["apple", "banana"] });
+    expect(wordsRes.status).toBe(200);
+    expect(wordsRes.body.assignedWords).toEqual(["apple", "banana"]);
+
+    const beeRes = await request(server.baseUrl).get(`/api/bees/${create.body.id}`).set(authHeader(user.id));
+    expect(beeRes.body.bee.totalRounds).toBe(2);
+  });
+
+  it("rejects an empty words array with 400", async () => {
+    const user = await createTestUser(testPrisma);
+    const create = await request(server.baseUrl)
+      .post("/api/bees")
+      .set(authHeader(user.id))
+      .send({ title: "Mine" });
+    const round = await request(server.baseUrl)
+      .post(`/api/bees/${create.body.id}/rounds`)
+      .set(authHeader(user.id));
+
+    const res = await request(server.baseUrl)
+      .put(`/api/bees/${create.body.id}/rounds/${round.body.roundNumber}/words`)
+      .set(authHeader(user.id))
+      .send({ words: [] });
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 403 when adding a round to another user's bee", async () => {
+    const user = await createTestUser(testPrisma);
+    const otherUser = await createTestUser(testPrisma);
+    const create = await request(server.baseUrl)
+      .post("/api/bees")
+      .set(authHeader(user.id))
+      .send({ title: "Mine" });
+
+    const res = await request(server.baseUrl)
+      .post(`/api/bees/${create.body.id}/rounds`)
+      .set(authHeader(otherUser.id));
+    expect(res.status).toBe(403);
+  });
+});
+
 describe("PATCH /api/bees/:beeId", () => {
   it("updates the title while status is created", async () => {
     const user = await createTestUser(testPrisma);
     const create = await request(server.baseUrl)
       .post("/api/bees")
       .set(authHeader(user.id))
-      .send({ title: "Old Title", totalRounds: 1, roundWords: [["a"]] });
+      .send({ title: "Old Title" });
 
     const res = await request(server.baseUrl)
       .patch(`/api/bees/${create.body.id}`)
@@ -135,7 +209,8 @@ describe("PATCH /api/bees/:beeId", () => {
     const create = await request(server.baseUrl)
       .post("/api/bees")
       .set(authHeader(user.id))
-      .send({ title: "Old Title", totalRounds: 1, roundWords: [["a"]] });
+      .send({ title: "Old Title" });
+    await addWordsRound(create.body.id, user.id);
     await request(server.baseUrl).post(`/api/bees/${create.body.id}/start`).set(authHeader(user.id));
 
     const res = await request(server.baseUrl)
@@ -152,7 +227,8 @@ describe("POST /api/bees/:beeId/start and /end", () => {
     const create = await request(server.baseUrl)
       .post("/api/bees")
       .set(authHeader(user.id))
-      .send({ title: "Mine", totalRounds: 1, roundWords: [["a"]] });
+      .send({ title: "Mine" });
+    await addWordsRound(create.body.id, user.id);
 
     const res = await request(server.baseUrl)
       .post(`/api/bees/${create.body.id}/start`)
@@ -167,7 +243,8 @@ describe("POST /api/bees/:beeId/start and /end", () => {
     const create = await request(server.baseUrl)
       .post("/api/bees")
       .set(authHeader(user.id))
-      .send({ title: "Mine", totalRounds: 1, roundWords: [["a"]] });
+      .send({ title: "Mine" });
+    await addWordsRound(create.body.id, user.id);
     await request(server.baseUrl).post(`/api/bees/${create.body.id}/start`).set(authHeader(user.id));
 
     const res = await request(server.baseUrl)
@@ -183,7 +260,7 @@ describe("POST /api/bees/:beeId/start and /end", () => {
     const create = await request(server.baseUrl)
       .post("/api/bees")
       .set(authHeader(user.id))
-      .send({ title: "Mine", totalRounds: 1, roundWords: [["a"]] });
+      .send({ title: "Mine" });
 
     const res = await request(server.baseUrl)
       .post(`/api/bees/${create.body.id}/start`)

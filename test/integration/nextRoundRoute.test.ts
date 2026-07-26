@@ -5,8 +5,7 @@ import { testPrisma } from "../helpers/prismaTestClient.ts";
 import { resetDatabase } from "../helpers/resetDb.ts";
 import { startTestServer, type TestServer } from "../helpers/testServer.ts";
 import { authHeader } from "../helpers/authHelpers.ts";
-import { createTestUser, buildParticipants, answerCorrectly, answerIncorrectly } from "../helpers/factories.ts";
-import { createBee, startBee } from "../../src/services/beeService.ts";
+import { buildStartedBee, buildParticipants, answerCorrectly, answerIncorrectly } from "../helpers/factories.ts";
 
 let server: TestServer;
 
@@ -41,42 +40,20 @@ async function joinRoom(gamekey: string): Promise<ClientSocket> {
 
 describe("POST /api/bees/:beeId/next-round", () => {
   it("rejects with 409 while turns remain in the current round", async () => {
-    const user = await createTestUser(testPrisma);
-    const bee = await startBee(
-      testPrisma,
-      (
-        await createBee(testPrisma, {
-          userId: user.id,
-          title: "Test",
-          totalRounds: 2,
-          roundWords: [["apple", "banana"], ["cherry", "date"]],
-        })
-      ).id,
-    );
+    const bee = await buildStartedBee(testPrisma, { roundWords: [["apple", "banana"], ["cherry", "date"]] });
     await buildParticipants(testPrisma, bee.id, 2);
     // Nobody has spelled yet -- round is not complete.
 
     const res = await request(server.baseUrl)
       .post(`/api/bees/${bee.id}/next-round`)
-      .set(authHeader(user.id));
+      .set(authHeader(bee.userId));
 
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe("ROUND_NOT_COMPLETE");
   });
 
   it("advances to the next round and broadcasts round:end then round:start", async () => {
-    const user = await createTestUser(testPrisma);
-    const bee = await startBee(
-      testPrisma,
-      (
-        await createBee(testPrisma, {
-          userId: user.id,
-          title: "Test",
-          totalRounds: 2,
-          roundWords: [["apple", "banana"], ["cherry", "date"]],
-        })
-      ).id,
-    );
+    const bee = await buildStartedBee(testPrisma, { roundWords: [["apple", "banana"], ["cherry", "date"]] });
     const [alice, bob] = await buildParticipants(testPrisma, bee.id, 2);
     await answerCorrectly(testPrisma, bee.id, alice.id);
     await answerCorrectly(testPrisma, bee.id, bob.id);
@@ -87,7 +64,7 @@ describe("POST /api/bees/:beeId/next-round", () => {
 
     const res = await request(server.baseUrl)
       .post(`/api/bees/${bee.id}/next-round`)
-      .set(authHeader(user.id));
+      .set(authHeader(bee.userId));
 
     expect(res.status).toBe(200);
     expect(res.body.ended).toBe(false);
@@ -101,18 +78,7 @@ describe("POST /api/bees/:beeId/next-round", () => {
   });
 
   it("ends the bee on the final round and broadcasts round:end then bee:completed with the winner", async () => {
-    const user = await createTestUser(testPrisma);
-    const bee = await startBee(
-      testPrisma,
-      (
-        await createBee(testPrisma, {
-          userId: user.id,
-          title: "Test",
-          totalRounds: 1,
-          roundWords: [["apple", "banana"]],
-        })
-      ).id,
-    );
+    const bee = await buildStartedBee(testPrisma, { roundWords: [["apple", "banana"]] });
     const [alice, bob] = await buildParticipants(testPrisma, bee.id, 2);
     await answerCorrectly(testPrisma, bee.id, alice.id);
     await answerIncorrectly(testPrisma, bee.id, bob.id);
@@ -123,7 +89,7 @@ describe("POST /api/bees/:beeId/next-round", () => {
 
     const res = await request(server.baseUrl)
       .post(`/api/bees/${bee.id}/next-round`)
-      .set(authHeader(user.id));
+      .set(authHeader(bee.userId));
 
     expect(res.status).toBe(200);
     expect(res.body.ended).toBe(true);

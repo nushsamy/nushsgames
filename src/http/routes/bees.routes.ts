@@ -5,11 +5,10 @@ import { requireAuth } from "../middleware/auth.ts";
 import { loadBeeParam } from "../middleware/ownership.ts";
 import { createBee, startBee, endBee, updateBee } from "../../services/beeService.ts";
 import { addParticipant, listParticipants } from "../../services/participantService.ts";
-import { getNextTurn, completeRoundAndProgress } from "../../services/roundService.ts";
+import { getNextTurn, completeRoundAndProgress, addRound, setRoundWords } from "../../services/roundService.ts";
 import { getStandings } from "../../services/standingsService.ts";
 import { submitResponse, skipParticipant, type SubmissionResult } from "../../services/responseService.ts";
-import { asString, asRawString, asPositiveInt } from "../validate.ts";
-import { ValidationError } from "../../errors/index.ts";
+import { asString, asRawString, asPositiveInt, asStringArray } from "../validate.ts";
 import {
   emitRoundStart,
   emitRoundEnd,
@@ -42,13 +41,8 @@ export function createBeesRouter(prisma: PrismaClient, io: SocketIOServer): Rout
 
   router.post("/", async (req, res) => {
     const title = asString(req.body?.title, "title");
-    const totalRounds = asPositiveInt(req.body?.totalRounds, "totalRounds");
-    const roundWords = req.body?.roundWords;
-    if (!Array.isArray(roundWords)) {
-      throw new ValidationError("roundWords must be an array of per-round word lists");
-    }
 
-    const bee = await createBee(prisma, { userId: req.userId!, title, totalRounds, roundWords });
+    const bee = await createBee(prisma, { userId: req.userId!, title });
     res.status(201).json(bee);
   });
 
@@ -73,6 +67,19 @@ export function createBeesRouter(prisma: PrismaClient, io: SocketIOServer): Rout
     }
     const bee = await updateBee(prisma, req.bee!.id, updates);
     res.status(200).json(bee);
+  });
+
+  router.post("/:beeId/rounds", async (req, res) => {
+    const round = await addRound(prisma, req.bee!.id);
+    res.status(201).json(round);
+  });
+
+  router.put("/:beeId/rounds/:roundNumber/words", async (req, res) => {
+    const roundNumber = asPositiveInt(Number(req.params.roundNumber), "roundNumber");
+    const words = asStringArray(req.body?.words, "words");
+
+    const round = await setRoundWords(prisma, req.bee!.id, roundNumber, words);
+    res.status(200).json(round);
   });
 
   router.post("/:beeId/start", async (req, res) => {

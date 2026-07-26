@@ -6,9 +6,6 @@ import { generateUniqueGamekey } from "../domain/gamekey.ts";
 export interface CreateBeeInput {
   userId: number;
   title: string;
-  totalRounds: number;
-  /** One word list per round; roundWords[i] holds the words for round i + 1. No fixed word count per round. */
-  roundWords: string[][];
 }
 
 export async function createBee(
@@ -18,36 +15,12 @@ export async function createBee(
   if (!input.title.trim()) {
     throw new ValidationError("Bee title must not be empty");
   }
-  if (!Number.isInteger(input.totalRounds) || input.totalRounds <= 0) {
-    throw new ValidationError("totalRounds must be a positive integer");
-  }
-  if (!Array.isArray(input.roundWords) || input.roundWords.length !== input.totalRounds) {
-    throw new ValidationError(`roundWords must contain exactly ${input.totalRounds} round(s) of words`);
-  }
-  input.roundWords.forEach((words, index) => {
-    if (!Array.isArray(words) || words.length === 0) {
-      throw new ValidationError(`Round ${index + 1} must have at least one word`);
-    }
-  });
 
-  return prisma.$transaction(async (tx) => {
-    const bee = await tx.spellingBee.create({
-      data: {
-        userId: input.userId,
-        title: input.title.trim(),
-        totalRounds: input.totalRounds,
-      },
-    });
-
-    await tx.beeRound.createMany({
-      data: input.roundWords.map((assignedWords, index) => ({
-        beeId: bee.id,
-        roundNumber: index + 1,
-        assignedWords,
-      })),
-    });
-
-    return bee;
+  return prisma.spellingBee.create({
+    data: {
+      userId: input.userId,
+      title: input.title.trim(),
+    },
   });
 }
 
@@ -72,6 +45,15 @@ export async function startBee(
       throw new InvalidBeeStateError(
         `Bee ${beeId} cannot be started from status "${bee.status}"`,
       );
+    }
+
+    const rounds = await tx.beeRound.findMany({ where: { beeId } });
+    if (rounds.length === 0) {
+      throw new ValidationError(`Bee ${beeId} has no rounds to start`);
+    }
+    const emptyRound = rounds.find((round) => (round.assignedWords as string[]).length === 0);
+    if (emptyRound) {
+      throw new ValidationError(`Round ${emptyRound.roundNumber} has no words assigned`);
     }
 
     const gamekey = await generateUniqueGamekey(tx);

@@ -15,6 +15,13 @@ export function asRawString(value: unknown, fieldName: string): string {
   return value;
 }
 
+export function asStringArray(value: unknown, fieldName: string): string[] {
+  if (!Array.isArray(value) || value.length === 0 || !value.every((v) => typeof v === "string" && v.trim() !== "")) {
+    throw new ValidationError(`${fieldName} must be a non-empty array of non-empty strings`);
+  }
+  return value;
+}
+
 export function asPositiveInt(value: unknown, fieldName: string): number {
   if (typeof value !== "number" || !Number.isInteger(value) || value <= 0) {
     throw new ValidationError(`${fieldName} must be a positive integer`);
