@@ -50,6 +50,51 @@ export async function setRoundWords(
   });
 }
 
+export async function listRounds(
+  prisma: PrismaClient | Prisma.TransactionClient,
+  beeId: number,
+): Promise<BeeRound[]> {
+  return prisma.beeRound.findMany({ where: { beeId }, orderBy: { roundNumber: "asc" } });
+}
+
+export async function deleteRound(
+  prisma: PrismaClient,
+  beeId: number,
+  roundNumber: number,
+): Promise<SpellingBee> {
+  return prisma.$transaction(async (tx) => {
+    const bee = await getBeeById(tx, beeId);
+    if (bee.status !== "created") {
+      throw new InvalidBeeStateError(`Rounds can only be deleted while bee ${beeId} is "created"`);
+    }
+
+    const round = await tx.beeRound.findUnique({
+      where: { beeId_roundNumber: { beeId, roundNumber } },
+    });
+    if (!round) {
+      throw new NotFoundError(`Round ${roundNumber} for bee ${beeId} not found`);
+    }
+
+    await tx.beeRound.delete({ where: { id: round.id } });
+
+    // Renumber subsequent rounds down by one, ascending, so each write targets the slot
+    // the previous step just vacated -- this never collides with @@unique([beeId, roundNumber])
+    // because addRound always appends contiguously, so rounds are always 1..totalRounds pre-delete.
+    const subsequent = await tx.beeRound.findMany({
+      where: { beeId, roundNumber: { gt: roundNumber } },
+      orderBy: { roundNumber: "asc" },
+    });
+    for (const r of subsequent) {
+      await tx.beeRound.update({ where: { id: r.id }, data: { roundNumber: r.roundNumber - 1 } });
+    }
+
+    return tx.spellingBee.update({
+      where: { id: beeId },
+      data: { totalRounds: bee.totalRounds - 1 },
+    });
+  });
+}
+
 export interface NextTurn {
   participant: Participant;
   word: string;
@@ -59,6 +104,13 @@ export interface NextTurn {
 export function requireInProgress(bee: SpellingBee): void {
   if (bee.status !== "in_progress") {
     throw new InvalidBeeStateError(`Bee ${bee.id} has no active round while "${bee.status}"`);
+  }
+}
+
+export function requireRoundStarted(bee: SpellingBee): void {
+  requireInProgress(bee);
+  if (!bee.roundStarted) {
+    throw new InvalidBeeStateError(`Round ${bee.currentRound} for bee ${bee.id} has not started yet`);
   }
 }
 
@@ -117,13 +169,37 @@ export async function isRoundComplete(
   return (await getNextTurn(prisma, beeId)) === null;
 }
 
+export async function startRound(
+  prisma: PrismaClient,
+  beeId: number,
+): Promise<{ bee: SpellingBee; nextTurn: NextTurn }> {
+  return prisma.$transaction(async (tx) => {
+    const bee = await getBeeById(tx, beeId);
+    requireInProgress(bee);
+    if (bee.roundStarted) {
+      throw new InvalidBeeStateError(`Round ${bee.currentRound} for bee ${beeId} has already started`);
+    }
+
+    const nextTurn = await getNextTurn(tx, beeId);
+    if (!nextTurn) {
+      throw new ValidationError(`Add at least one participant before starting round ${bee.currentRound}`);
+    }
+
+    const updated = await tx.spellingBee.update({
+      where: { id: beeId },
+      data: { roundStarted: true },
+    });
+    return { bee: updated, nextTurn };
+  });
+}
+
 export async function completeRoundAndProgress(
   prisma: PrismaClient,
   beeId: number,
 ): Promise<{ bee: SpellingBee; ended: boolean }> {
   return prisma.$transaction(async (tx) => {
     const bee = await getBeeById(tx, beeId);
-    requireInProgress(bee);
+    requireRoundStarted(bee);
 
     if (!(await isRoundComplete(tx, beeId))) {
       throw new RoundNotCompleteError(
@@ -146,7 +222,7 @@ export async function completeRoundAndProgress(
 
     const advanced = await tx.spellingBee.update({
       where: { id: beeId },
-      data: { currentRound: bee.currentRound + 1 },
+      data: { currentRound: bee.currentRound + 1, roundStarted: false },
     });
     return { bee: advanced, ended: false };
   });

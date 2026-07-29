@@ -15,6 +15,9 @@ interface JoinPayload {
 export function createSocketServer(httpServer: HttpServer, prisma: PrismaClient): SocketIOServer {
   const io = new SocketIOServer(httpServer, {
     cors: { origin: process.env.FRONTEND_URL },
+    // WebSocket-only: avoids a known engine.io HTTP long-polling race that can
+    // write a response twice and crash the process (ERR_HTTP_HEADERS_SENT).
+    transports: ["websocket"],
   });
 
   io.on("connection", (socket: Socket) => {

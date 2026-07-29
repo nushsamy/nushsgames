@@ -36,6 +36,7 @@ model SpellingBee {
   gamekey      String?   @unique
   status       BeeStatus @default(created)
   currentRound Int       @default(0)
+  roundStarted Boolean   @default(false)
   createdAt    DateTime  @default(now())
 
   participants Participant[]
@@ -46,12 +47,13 @@ model SpellingBee {
 }
 
 model Participant {
-  id           Int         @id @default(autoincrement())
-  beeId        Int
-  bee          SpellingBee @relation(fields: [beeId], references: [id], onDelete: Cascade)
-  name         String
-  isActive     Boolean     @default(true)
-  isEliminated Boolean     @default(false)
+  id              Int         @id @default(autoincrement())
+  beeId           Int
+  bee             SpellingBee @relation(fields: [beeId], references: [id], onDelete: Cascade)
+  name            String
+  isActive        Boolean     @default(true)
+  isEliminated    Boolean     @default(false)
+  eliminatedRound Int?
 
   @@unique([beeId, name])
   @@index([beeId])

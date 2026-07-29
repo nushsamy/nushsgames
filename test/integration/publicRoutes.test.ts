@@ -4,7 +4,7 @@ import { io as ioClient, type Socket as ClientSocket } from "socket.io-client";
 import { testPrisma } from "../helpers/prismaTestClient.ts";
 import { resetDatabase } from "../helpers/resetDb.ts";
 import { startTestServer, type TestServer } from "../helpers/testServer.ts";
-import { buildStartedBee, buildParticipants, answerCorrectly, answerIncorrectly } from "../helpers/factories.ts";
+import { buildStartedBee, buildParticipants, answerCorrectly, answerIncorrectly, startRound } from "../helpers/factories.ts";
 import { completeRoundAndProgress } from "../../src/services/roundService.ts";
 
 let server: TestServer;
@@ -72,6 +72,7 @@ describe("GET /api/gamekey/:gamekey/state", () => {
   it("reflects persisted state without ever exposing the current word or a verdict", async () => {
     const bee = await buildStartedBee(testPrisma);
     const [alice] = await buildParticipants(testPrisma, bee.id, 1);
+    await startRound(testPrisma, bee.id);
 
     const res = await request(server.baseUrl).get(`/api/gamekey/${bee.gamekey}/state`);
 
@@ -90,6 +91,7 @@ describe("GET /api/gamekey/:gamekey/state", () => {
   it("includes standings and a winner once the bee is completed", async () => {
     const bee = await buildStartedBee(testPrisma, { roundWords: [["apple", "banana"]] });
     const [alice, bob] = await buildParticipants(testPrisma, bee.id, 2);
+    await startRound(testPrisma, bee.id);
     await answerCorrectly(testPrisma, bee.id, alice.id);
     await answerIncorrectly(testPrisma, bee.id, bob.id);
     // Drive the bee to completion directly through the service layer -- the /next-round

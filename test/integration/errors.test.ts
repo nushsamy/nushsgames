@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import { testPrisma } from "../helpers/prismaTestClient.ts";
 import { resetDatabase } from "../helpers/resetDb.ts";
-import { buildBee, buildStartedBee, buildParticipants } from "../helpers/factories.ts";
+import { buildBee, buildStartedBee, buildParticipants, startRound } from "../helpers/factories.ts";
 import { submitResponse } from "../../src/services/responseService.ts";
 import { completeRoundAndProgress } from "../../src/services/roundService.ts";
 import { InvalidBeeStateError } from "../../src/errors/index.ts";
@@ -29,6 +29,7 @@ describe("operating on a bee in the wrong state", () => {
   it("cannot submit a response to a completed bee", async () => {
     const bee = await buildStartedBee(testPrisma, { roundWords: [["apple"]] });
     const [alice] = await buildParticipants(testPrisma, bee.id, 1);
+    await startRound(testPrisma, bee.id);
     await submitResponse(testPrisma, { beeId: bee.id, participantId: alice.id, userSpelling: "apple" });
     await completeRoundAndProgress(testPrisma, bee.id); // only 1 participant -> ends immediately
 

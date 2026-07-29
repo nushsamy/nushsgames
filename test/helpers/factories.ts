@@ -2,8 +2,10 @@ import { randomUUID } from "node:crypto";
 import type { PrismaClient, SpellingBee, Participant } from "../../generated/prisma/client.ts";
 import { createBee, startBee, getBeeById } from "../../src/services/beeService.ts";
 import { addParticipant } from "../../src/services/participantService.ts";
-import { getNextTurn, addRound, setRoundWords } from "../../src/services/roundService.ts";
+import { getNextTurn, addRound, setRoundWords, startRound } from "../../src/services/roundService.ts";
 import { submitResponse, skipParticipant } from "../../src/services/responseService.ts";
+
+export { startRound };
 
 export const DEFAULT_ROUND_WORDS: string[][] = [
   ["apple", "banana"],

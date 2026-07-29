@@ -34,7 +34,8 @@ export function createGamekeyStateRouter(prisma: PrismaClient): Router {
   router.get("/:gamekey/state", async (req, res) => {
     const bee = await getBeeByGamekey(prisma, req.params.gamekey);
     const participants = await listParticipants(prisma, bee.id);
-    const currentTurn = bee.status === "in_progress" ? await getNextTurn(prisma, bee.id) : null;
+    const currentTurn =
+      bee.status === "in_progress" && bee.roundStarted ? await getNextTurn(prisma, bee.id) : null;
     const standings = bee.status === "completed" ? await getStandings(prisma, bee.id) : null;
 
     res.status(200).json({

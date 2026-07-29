@@ -79,6 +79,37 @@ export async function endBee(
   });
 }
 
+export async function reopenBee(
+  prisma: PrismaClient,
+  beeId: number,
+): Promise<SpellingBee> {
+  return prisma.$transaction(async (tx) => {
+    const bee = await getBeeById(tx, beeId);
+    if (bee.status !== "completed") {
+      throw new InvalidBeeStateError(
+        `Bee ${beeId} can only be reopened from "completed", not "${bee.status}"`,
+      );
+    }
+
+    await tx.participant.deleteMany({ where: { beeId } });
+
+    return tx.spellingBee.update({
+      where: { id: beeId },
+      data: { status: "created", gamekey: null, currentRound: 0, roundStarted: false },
+    });
+  });
+}
+
+export async function deleteBee(prisma: PrismaClient, beeId: number): Promise<void> {
+  const bee = await getBeeById(prisma, beeId);
+  if (bee.status !== "created") {
+    throw new InvalidBeeStateError(
+      `Bee ${beeId} can only be deleted while "created", not "${bee.status}"`,
+    );
+  }
+  await prisma.spellingBee.delete({ where: { id: beeId } });
+}
+
 export async function getBeeByGamekey(
   prisma: PrismaClient | Prisma.TransactionClient,
   gamekey: string,

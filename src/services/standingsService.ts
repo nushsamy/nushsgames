@@ -6,6 +6,7 @@ export interface StandingsParticipant {
   name: string;
   isActive: boolean;
   isEliminated: boolean;
+  eliminatedRound: number | null;
 }
 
 export interface Standings {
@@ -30,6 +31,7 @@ export async function getStandings(
     name: p.name,
     isActive: p.isActive,
     isEliminated: p.isEliminated,
+    eliminatedRound: p.eliminatedRound,
   });
 
   const active = participants.filter((p) => !p.isEliminated).map(toStandingsParticipant);

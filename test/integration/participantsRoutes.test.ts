@@ -4,7 +4,14 @@ import { testPrisma } from "../helpers/prismaTestClient.ts";
 import { resetDatabase } from "../helpers/resetDb.ts";
 import { startTestServer, type TestServer } from "../helpers/testServer.ts";
 import { authHeader } from "../helpers/authHelpers.ts";
-import { createTestUser, buildStartedBee, buildParticipants, answerCorrectly } from "../helpers/factories.ts";
+import {
+  createTestUser,
+  buildStartedBee,
+  buildParticipants,
+  answerCorrectly,
+  answerIncorrectly,
+  startRound,
+} from "../helpers/factories.ts";
 
 let server: TestServer;
 
@@ -34,12 +41,27 @@ describe("POST /api/bees/:beeId/participants", () => {
     expect(res.body.name).toBe("Alice");
     expect(res.body.isActive).toBe(true);
   });
+
+  it("rejects with 409 ROUND_IN_PROGRESS once the round has started", async () => {
+    const bee = await buildStartedBee(testPrisma);
+    await buildParticipants(testPrisma, bee.id, 1);
+    await startRound(testPrisma, bee.id);
+
+    const res = await request(server.baseUrl)
+      .post(`/api/bees/${bee.id}/participants`)
+      .set(authHeader(bee.userId))
+      .send({ name: "Late Arrival" });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe("ROUND_IN_PROGRESS");
+  });
 });
 
 describe("GET /api/bees/:beeId/participants", () => {
   it("splits participants into active and eliminated", async () => {
     const bee = await buildStartedBee(testPrisma);
     const [alice, bob] = await buildParticipants(testPrisma, bee.id, 2);
+    await startRound(testPrisma, bee.id);
     await answerCorrectly(testPrisma, bee.id, alice.id);
     await answerCorrectly(testPrisma, bee.id, bob.id);
 
@@ -57,6 +79,7 @@ describe("PATCH /api/participants/:participantId", () => {
   it("rejects with 409 ROUND_IN_PROGRESS while turns remain in the round", async () => {
     const bee = await buildStartedBee(testPrisma);
     const [alice, bob] = await buildParticipants(testPrisma, bee.id, 2);
+    await startRound(testPrisma, bee.id);
     // Alice has spelled, Bob has not -- round is not yet complete.
     await answerCorrectly(testPrisma, bee.id, alice.id);
 
@@ -72,6 +95,7 @@ describe("PATCH /api/participants/:participantId", () => {
   it("allows a manual override once the round is complete", async () => {
     const bee = await buildStartedBee(testPrisma);
     const [alice, bob] = await buildParticipants(testPrisma, bee.id, 2);
+    await startRound(testPrisma, bee.id);
     await answerCorrectly(testPrisma, bee.id, alice.id);
     await answerCorrectly(testPrisma, bee.id, bob.id);
 
@@ -83,6 +107,25 @@ describe("PATCH /api/participants/:participantId", () => {
     expect(res.status).toBe(200);
     expect(res.body.isActive).toBe(true);
     expect(res.body.isEliminated).toBe(false);
+  });
+
+  it("clears eliminatedRound when manually reactivating an eliminated participant", async () => {
+    const bee = await buildStartedBee(testPrisma);
+    const [alice, bob] = await buildParticipants(testPrisma, bee.id, 2);
+    await startRound(testPrisma, bee.id);
+    await answerIncorrectly(testPrisma, bee.id, alice.id);
+    await answerCorrectly(testPrisma, bee.id, bob.id);
+
+    const eliminated = await testPrisma.participant.findUniqueOrThrow({ where: { id: alice.id } });
+    expect(eliminated.eliminatedRound).toBe(1);
+
+    const res = await request(server.baseUrl)
+      .patch(`/api/participants/${alice.id}`)
+      .set(authHeader(bee.userId))
+      .send({ isActive: true, isEliminated: false });
+
+    expect(res.status).toBe(200);
+    expect(res.body.eliminatedRound).toBeNull();
   });
 
   it("rejects a nonsensical isActive+isEliminated combination with 400", async () => {
@@ -101,6 +144,7 @@ describe("PATCH /api/participants/:participantId", () => {
     const otherUser = await createTestUser(testPrisma);
     const bee = await buildStartedBee(testPrisma);
     const [alice] = await buildParticipants(testPrisma, bee.id, 1);
+    await startRound(testPrisma, bee.id);
     await answerCorrectly(testPrisma, bee.id, alice.id);
 
     const res = await request(server.baseUrl)

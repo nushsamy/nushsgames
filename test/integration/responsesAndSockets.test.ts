@@ -5,7 +5,7 @@ import { testPrisma } from "../helpers/prismaTestClient.ts";
 import { resetDatabase } from "../helpers/resetDb.ts";
 import { startTestServer, type TestServer } from "../helpers/testServer.ts";
 import { authHeader } from "../helpers/authHelpers.ts";
-import { buildStartedBee, buildParticipants, createTestUser } from "../helpers/factories.ts";
+import { buildStartedBee, buildParticipants, createTestUser, startRound } from "../helpers/factories.ts";
 
 let server: TestServer;
 
@@ -42,6 +42,7 @@ describe("POST /api/bees/:beeId/responses", () => {
   it("records a correct spelling and broadcasts response:submitted", async () => {
     const bee = await buildStartedBee(testPrisma);
     const [alice] = await buildParticipants(testPrisma, bee.id, 1);
+    await startRound(testPrisma, bee.id);
     const display = await joinRoom(bee.gamekey!);
 
     const broadcast = waitForEvent<{ isCorrect: boolean; word: string; participantName: string }>(
@@ -67,6 +68,7 @@ describe("POST /api/bees/:beeId/responses", () => {
   it("records an incorrect spelling, eliminates the participant, and broadcasts both events", async () => {
     const bee = await buildStartedBee(testPrisma);
     const [alice] = await buildParticipants(testPrisma, bee.id, 1);
+    await startRound(testPrisma, bee.id);
     const display = await joinRoom(bee.gamekey!);
 
     const submitted = waitForEvent<{ isCorrect: boolean }>(display, "response:submitted");
@@ -88,6 +90,7 @@ describe("POST /api/bees/:beeId/responses", () => {
   it("rejects an out-of-turn submission with 409 and does not broadcast anything", async () => {
     const bee = await buildStartedBee(testPrisma);
     const [, bob] = await buildParticipants(testPrisma, bee.id, 2);
+    await startRound(testPrisma, bee.id);
     const display = await joinRoom(bee.gamekey!);
 
     let sawBroadcast = false;
@@ -128,6 +131,7 @@ describe("POST /api/bees/:beeId/skip", () => {
   it("eliminates the participant with an empty spelling and broadcasts both events", async () => {
     const bee = await buildStartedBee(testPrisma);
     const [alice] = await buildParticipants(testPrisma, bee.id, 1);
+    await startRound(testPrisma, bee.id);
     const display = await joinRoom(bee.gamekey!);
 
     const submitted = waitForEvent<{ isCorrect: boolean; userSpelling: string }>(display, "response:submitted");

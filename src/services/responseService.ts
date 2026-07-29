@@ -6,7 +6,7 @@ import {
 } from "../errors/index.ts";
 import { isSpelledCorrectly } from "../domain/spelling.ts";
 import { getBeeById } from "./beeService.ts";
-import { requireInProgress, getNextTurn } from "./roundService.ts";
+import { requireRoundStarted, getNextTurn } from "./roundService.ts";
 
 export interface SubmitResponseInput {
   beeId: number;
@@ -27,7 +27,7 @@ async function loadEligibleTurn(
   participantId: number,
 ) {
   const bee = await getBeeById(tx, beeId);
-  requireInProgress(bee);
+  requireRoundStarted(bee);
 
   const participant = await tx.participant.findUnique({ where: { id: participantId } });
   if (!participant) {
@@ -55,14 +55,14 @@ export async function submitResponse(
   input: SubmitResponseInput,
 ): Promise<SubmissionResult> {
   return prisma.$transaction(async (tx) => {
-    const { nextTurn } = await loadEligibleTurn(tx, input.beeId, input.participantId);
+    const { bee, nextTurn } = await loadEligibleTurn(tx, input.beeId, input.participantId);
     const spelledCorrectly = isSpelledCorrectly(nextTurn.word, input.userSpelling);
 
     const participant = await tx.participant.update({
       where: { id: input.participantId },
       data: spelledCorrectly
         ? { isActive: false }
-        : { isActive: false, isEliminated: true },
+        : { isActive: false, isEliminated: true, eliminatedRound: bee.currentRound },
     });
 
     return {
@@ -80,11 +80,11 @@ export async function skipParticipant(
   participantId: number,
 ): Promise<SubmissionResult> {
   return prisma.$transaction(async (tx) => {
-    const { nextTurn } = await loadEligibleTurn(tx, beeId, participantId);
+    const { bee, nextTurn } = await loadEligibleTurn(tx, beeId, participantId);
 
     const participant = await tx.participant.update({
       where: { id: participantId },
-      data: { isActive: false, isEliminated: true },
+      data: { isActive: false, isEliminated: true, eliminatedRound: bee.currentRound },
     });
 
     return {

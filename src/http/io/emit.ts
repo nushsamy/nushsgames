@@ -56,7 +56,13 @@ export function emitBeeCompleted(
   gamekey: string,
   payload: {
     winner: { id: number; name: string } | null;
-    finalStandings: Array<{ id: number; name: string; isActive: boolean; isEliminated: boolean }>;
+    finalStandings: Array<{
+      id: number;
+      name: string;
+      isActive: boolean;
+      isEliminated: boolean;
+      eliminatedRound: number | null;
+    }>;
   },
 ): void {
   emitToGamekey(io, gamekey, "bee:completed", payload);

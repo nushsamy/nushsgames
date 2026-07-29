@@ -5,7 +5,7 @@ import { testPrisma } from "../helpers/prismaTestClient.ts";
 import { resetDatabase } from "../helpers/resetDb.ts";
 import { startTestServer, type TestServer } from "../helpers/testServer.ts";
 import { authHeader } from "../helpers/authHelpers.ts";
-import { buildStartedBee, buildParticipants, answerCorrectly, answerIncorrectly } from "../helpers/factories.ts";
+import { buildStartedBee, buildParticipants, answerCorrectly, answerIncorrectly, startRound } from "../helpers/factories.ts";
 
 let server: TestServer;
 
@@ -42,6 +42,7 @@ describe("POST /api/bees/:beeId/next-round", () => {
   it("rejects with 409 while turns remain in the current round", async () => {
     const bee = await buildStartedBee(testPrisma, { roundWords: [["apple", "banana"], ["cherry", "date"]] });
     await buildParticipants(testPrisma, bee.id, 2);
+    await startRound(testPrisma, bee.id);
     // Nobody has spelled yet -- round is not complete.
 
     const res = await request(server.baseUrl)
@@ -52,15 +53,15 @@ describe("POST /api/bees/:beeId/next-round", () => {
     expect(res.body.error.code).toBe("ROUND_NOT_COMPLETE");
   });
 
-  it("advances to the next round and broadcasts round:end then round:start", async () => {
+  it("advances to the next round without starting it, and start-round then broadcasts round:start", async () => {
     const bee = await buildStartedBee(testPrisma, { roundWords: [["apple", "banana"], ["cherry", "date"]] });
     const [alice, bob] = await buildParticipants(testPrisma, bee.id, 2);
+    await startRound(testPrisma, bee.id);
     await answerCorrectly(testPrisma, bee.id, alice.id);
     await answerCorrectly(testPrisma, bee.id, bob.id);
 
     const display = await joinRoom(bee.gamekey!);
     const roundEnd = waitForEvent<{ advancedParticipants: string[] }>(display, "round:end");
-    const roundStart = waitForEvent<{ roundNumber: number }>(display, "round:start");
 
     const res = await request(server.baseUrl)
       .post(`/api/bees/${bee.id}/next-round`)
@@ -69,9 +70,16 @@ describe("POST /api/bees/:beeId/next-round", () => {
     expect(res.status).toBe(200);
     expect(res.body.ended).toBe(false);
     expect(res.body.bee.currentRound).toBe(2);
+    expect(res.body.bee.roundStarted).toBe(false);
 
     const endPayload = await roundEnd;
     expect(endPayload.advancedParticipants.sort()).toEqual([alice.name, bob.name].sort());
+
+    const roundStart = waitForEvent<{ roundNumber: number }>(display, "round:start");
+    const startRes = await request(server.baseUrl)
+      .post(`/api/bees/${bee.id}/start-round`)
+      .set(authHeader(bee.userId));
+    expect(startRes.status).toBe(200);
     expect((await roundStart).roundNumber).toBe(2);
 
     display.disconnect();
@@ -80,6 +88,7 @@ describe("POST /api/bees/:beeId/next-round", () => {
   it("ends the bee on the final round and broadcasts round:end then bee:completed with the winner", async () => {
     const bee = await buildStartedBee(testPrisma, { roundWords: [["apple", "banana"]] });
     const [alice, bob] = await buildParticipants(testPrisma, bee.id, 2);
+    await startRound(testPrisma, bee.id);
     await answerCorrectly(testPrisma, bee.id, alice.id);
     await answerIncorrectly(testPrisma, bee.id, bob.id);
 

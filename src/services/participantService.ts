@@ -26,6 +26,11 @@ export async function addParticipant(
       `Cannot add a participant to bee ${beeId} while it is "${bee.status}"`,
     );
   }
+  if (bee.roundStarted) {
+    throw new RoundInProgressError(
+      `Cannot add a participant to bee ${beeId} while round ${bee.currentRound} is in progress`,
+    );
+  }
 
   const existing = await prisma.participant.findFirst({
     where: { beeId, name: { equals: trimmedName, mode: "insensitive" } },
@@ -65,10 +70,15 @@ export async function reactivateParticipant(
       `Cannot reactivate a participant in bee ${bee.id} while it is "${bee.status}"`,
     );
   }
+  if (bee.roundStarted) {
+    throw new RoundInProgressError(
+      `Cannot reactivate a participant in bee ${bee.id} while round ${bee.currentRound} is in progress`,
+    );
+  }
 
   return prisma.participant.update({
     where: { id: participantId },
-    data: { isActive: true, isEliminated: false },
+    data: { isActive: true, isEliminated: false, eliminatedRound: null },
   });
 }
 
@@ -114,9 +124,16 @@ export async function updateParticipantStatus(
       );
     }
 
+    const data: UpdateParticipantStatusInput & { eliminatedRound?: number | null } = { ...updates };
+    if (updates.isEliminated === true) {
+      data.eliminatedRound = bee.currentRound;
+    } else if (updates.isEliminated === false) {
+      data.eliminatedRound = null;
+    }
+
     return tx.participant.update({
       where: { id: participantId },
-      data: updates,
+      data,
     });
   });
 }

@@ -3,9 +3,17 @@ import type { PrismaClient } from "../../../generated/prisma/client.ts";
 import type { Server as SocketIOServer } from "socket.io";
 import { requireAuth } from "../middleware/auth.ts";
 import { loadBeeParam } from "../middleware/ownership.ts";
-import { createBee, startBee, endBee, updateBee } from "../../services/beeService.ts";
+import { createBee, startBee, endBee, reopenBee, updateBee, deleteBee } from "../../services/beeService.ts";
 import { addParticipant, listParticipants } from "../../services/participantService.ts";
-import { getNextTurn, completeRoundAndProgress, addRound, setRoundWords } from "../../services/roundService.ts";
+import {
+  getNextTurn,
+  startRound,
+  completeRoundAndProgress,
+  addRound,
+  setRoundWords,
+  listRounds,
+  deleteRound,
+} from "../../services/roundService.ts";
 import { getStandings } from "../../services/standingsService.ts";
 import { submitResponse, skipParticipant, type SubmissionResult } from "../../services/responseService.ts";
 import { asString, asRawString, asPositiveInt, asStringArray } from "../validate.ts";
@@ -56,7 +64,7 @@ export function createBeesRouter(prisma: PrismaClient, io: SocketIOServer): Rout
 
   router.get("/:beeId", async (req, res) => {
     const bee = req.bee!;
-    const currentTurn = bee.status === "in_progress" ? await getNextTurn(prisma, bee.id) : null;
+    const currentTurn = bee.status === "in_progress" && bee.roundStarted ? await getNextTurn(prisma, bee.id) : null;
     res.status(200).json({ bee, currentTurn });
   });
 
@@ -67,6 +75,16 @@ export function createBeesRouter(prisma: PrismaClient, io: SocketIOServer): Rout
     }
     const bee = await updateBee(prisma, req.bee!.id, updates);
     res.status(200).json(bee);
+  });
+
+  router.delete("/:beeId", async (req, res) => {
+    await deleteBee(prisma, req.bee!.id);
+    res.status(204).send();
+  });
+
+  router.get("/:beeId/rounds", async (req, res) => {
+    const rounds = await listRounds(prisma, req.bee!.id);
+    res.status(200).json(rounds);
   });
 
   router.post("/:beeId/rounds", async (req, res) => {
@@ -82,10 +100,25 @@ export function createBeesRouter(prisma: PrismaClient, io: SocketIOServer): Rout
     res.status(200).json(round);
   });
 
+  router.delete("/:beeId/rounds/:roundNumber", async (req, res) => {
+    const roundNumber = asPositiveInt(Number(req.params.roundNumber), "roundNumber");
+    const bee = await deleteRound(prisma, req.bee!.id, roundNumber);
+    res.status(200).json(bee);
+  });
+
   router.post("/:beeId/start", async (req, res) => {
     const bee = await startBee(prisma, req.bee!.id);
-    emitRoundStart(io, bee.gamekey!, { roundNumber: bee.currentRound });
     res.status(200).json(bee);
+  });
+
+  router.post("/:beeId/start-round", async (req, res) => {
+    const { bee, nextTurn } = await startRound(prisma, req.bee!.id);
+    emitRoundStart(io, bee.gamekey!, {
+      roundNumber: bee.currentRound,
+      participantId: nextTurn.participant.id,
+      participantName: nextTurn.participant.name,
+    });
+    res.status(200).json({ bee, currentTurn: nextTurn });
   });
 
   router.post("/:beeId/end", async (req, res) => {
@@ -95,6 +128,11 @@ export function createBeesRouter(prisma: PrismaClient, io: SocketIOServer): Rout
       winner: standings.winner,
       finalStandings: [...standings.active, ...standings.eliminated],
     });
+    res.status(200).json(bee);
+  });
+
+  router.post("/:beeId/reopen", async (req, res) => {
+    const bee = await reopenBee(prisma, req.bee!.id);
     res.status(200).json(bee);
   });
 
@@ -110,13 +148,6 @@ export function createBeesRouter(prisma: PrismaClient, io: SocketIOServer): Rout
       emitBeeCompleted(io, gamekey, {
         winner: standings.winner,
         finalStandings: [...standings.active, ...standings.eliminated],
-      });
-    } else {
-      const nextTurn = await getNextTurn(prisma, beeId);
-      emitRoundStart(io, gamekey, {
-        roundNumber: bee.currentRound,
-        participantId: nextTurn?.participant.id,
-        participantName: nextTurn?.participant.name,
       });
     }
 
