@@ -5,6 +5,7 @@ import { GamekeyBox } from "@/components/control/GamekeyBox";
 import { ConnectionIndicator } from "@/components/control/ConnectionIndicator";
 import { EndBeeConfirmDialog } from "@/components/control/EndBeeConfirmDialog";
 import { CurrentTurnCard } from "@/components/control/CurrentTurnCard";
+import { WordDefinitionCard } from "@/components/control/WordDefinitionCard";
 import { SpellingInput } from "@/components/control/SpellingInput";
 import { ParticipantsTabs } from "@/components/control/ParticipantsTabs";
 import { StandingsTable } from "@/components/control/StandingsTable";
@@ -122,6 +123,7 @@ export function ControlPanelPage() {
       {currentTurn && (
         <>
           <CurrentTurnCard roundNumber={bee.currentRound} currentTurn={currentTurn} />
+          <WordDefinitionCard word={currentTurn.word} />
           <SpellingInput
             disabled={submitting}
             onEmitTyping={(value) => emit("typing:update", { currentSpelling: value })}
