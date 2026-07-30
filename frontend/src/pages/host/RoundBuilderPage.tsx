@@ -1,5 +1,4 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { RoundListItem } from "@/components/roundBuilder/RoundListItem";
 import { DeleteBeeDialog } from "@/components/bees/DeleteBeeDialog";
@@ -16,7 +15,7 @@ export function RoundBuilderPage() {
   useBeeStatusGuard(bee, notFound, loading, "builder");
 
   if (loading || !bee) {
-    return <p className="text-muted-foreground">Loading...</p>;
+    return <p className="font-semibold text-[oklch(0.6_0.04_340)]">Loading...</p>;
   }
 
   async function handleStart() {
@@ -32,28 +31,36 @@ export function RoundBuilderPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-[22px]">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">{bee.title}</h1>
-          <p className="text-muted-foreground">Total Rounds: {bee.totalRounds}</p>
+          <h1 className="font-fredoka text-[26px] font-semibold text-[oklch(0.4_0.14_340)]">{bee.title}</h1>
+          <p className="mt-1 text-sm font-semibold text-[oklch(0.55_0.05_340)]">Total Rounds: {bee.totalRounds}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 gap-2.5">
           <DeleteBeeDialog
             title={bee.title}
             onConfirm={handleDeleteBee}
             trigger={
-              <Button variant="destructive" size="sm">
+              <button
+                type="button"
+                className="h-[42px] cursor-pointer rounded-full border-2 border-[oklch(0.85_0.1_25_/_0.6)] bg-white px-5 font-fredoka text-sm font-bold text-[oklch(0.6_0.15_25)]"
+              >
                 Delete Bee
-              </Button>
+              </button>
             }
           />
           <Tooltip>
             <TooltipTrigger asChild>
               <span>
-                <Button onClick={handleStart} disabled={!canStart}>
+                <button
+                  type="button"
+                  onClick={() => void handleStart()}
+                  disabled={!canStart}
+                  className="h-[42px] cursor-pointer rounded-full border-none bg-[linear-gradient(135deg,oklch(0.72_0.17_340),oklch(0.75_0.15_20))] px-[22px] font-fredoka text-sm font-bold text-white shadow-[0_6px_14px_oklch(0.7_0.17_340_/_0.4)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
                   Start Bee
-                </Button>
+                </button>
               </span>
             </TooltipTrigger>
             {!canStart && <TooltipContent>Add at least one round with words to start</TooltipContent>}
@@ -63,16 +70,20 @@ export function RoundBuilderPage() {
 
       <div className="flex flex-col gap-3">
         {rounds.length === 0 && (
-          <p className="text-muted-foreground">No rounds added yet. Add one to get started!</p>
+          <p className="font-semibold text-[oklch(0.6_0.04_340)]">No rounds added yet. Add one to get started!</p>
         )}
         {rounds.map((round) => (
           <RoundListItem key={round.id} round={round} onSaveWords={saveRoundWords} onDelete={removeRound} />
         ))}
       </div>
 
-      <Button variant="outline" onClick={() => void addRound()} className="self-start">
+      <button
+        type="button"
+        onClick={() => void addRound()}
+        className="h-[42px] cursor-pointer self-start rounded-full border-2 border-dashed border-[oklch(0.8_0.06_340)] bg-white px-[22px] font-fredoka text-sm font-bold text-[oklch(0.45_0.14_340)]"
+      >
         + Add Round
-      </Button>
+      </button>
     </div>
   );
 }

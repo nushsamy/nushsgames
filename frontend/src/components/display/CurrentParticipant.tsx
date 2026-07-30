@@ -5,9 +5,9 @@ interface CurrentParticipantProps {
 
 export function CurrentParticipant({ name, subtitle }: CurrentParticipantProps) {
   return (
-    <div className="mt-10 text-center">
-      <p className="text-proj-name font-extrabold">{name ?? "—"}</p>
-      <p className="mt-3 text-2xl text-muted-foreground">{subtitle}</p>
-    </div>
+    <>
+      <p className="m-0 font-fredoka text-[56px] font-bold text-[oklch(0.4_0.14_340)]">{name ?? "—"}</p>
+      <p className="m-0 text-xl font-bold text-[oklch(0.55_0.05_340)]">{subtitle}</p>
+    </>
   );
 }

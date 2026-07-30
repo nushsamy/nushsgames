@@ -7,17 +7,19 @@ interface VerdictBadgeProps {
 
 export function VerdictBadge({ verdict }: VerdictBadgeProps) {
   return (
-    <div className="mt-10 flex flex-col items-center gap-6">
+    <div className="flex flex-col items-center gap-5">
       <span
         className={cn(
-          "animate-pulse rounded-full px-10 py-4 text-proj-verdict font-extrabold uppercase tracking-wide",
-          verdict.isCorrect ? "bg-success text-success-foreground" : "bg-destructive text-white",
+          "animate-[proj-pop-in_0.3s_ease-out] rounded-full px-14 py-6 text-[40px] font-bold uppercase tracking-wide",
+          verdict.isCorrect
+            ? "bg-[oklch(0.85_0.13_145)] text-[oklch(0.28_0.08_145)] shadow-[0_10px_26px_oklch(0.7_0.1_145_/_0.4)]"
+            : "bg-[oklch(0.85_0.1_25)] text-[oklch(0.32_0.12_25)] shadow-[0_10px_26px_oklch(0.7_0.12_25_/_0.4)]",
         )}
       >
         {verdict.isCorrect ? "✓ Correct" : "✗ Incorrect"}
       </span>
-      <p className="font-mono text-4xl tracking-widest">{verdict.word.toUpperCase()}</p>
-      <p className="text-xl text-muted-foreground">
+      <p className="m-0 font-mono text-[34px] font-bold tracking-[6px] text-[oklch(0.42_0.1_340)]">{verdict.word.toUpperCase()}</p>
+      <p className="m-0 text-[19px] font-semibold text-[oklch(0.5_0.05_340)]">
         {verdict.isCorrect
           ? `${verdict.participantName} advances to the next round!`
           : `${verdict.participantName} is eliminated`}

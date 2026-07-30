@@ -12,17 +12,23 @@ function subtitleFor(phase: TurnPhase): string {
 }
 
 export function TurnScreen({ phase }: { phase: TurnPhase }) {
-  return (
-    <div className="flex flex-col items-center">
-      <RoundHeader roundNumber={phase.roundNumber} totalRounds={phase.totalRounds} />
-      {phase.turnStage === "verdict" && phase.verdict ? (
+  if (phase.turnStage === "verdict" && phase.verdict) {
+    return (
+      <div className="flex flex-col items-center gap-5 text-center">
+        <RoundHeader roundNumber={phase.roundNumber} totalRounds={phase.totalRounds} />
         <VerdictBadge verdict={phase.verdict} />
-      ) : (
-        <>
-          <CurrentParticipant name={phase.participantName} subtitle={subtitleFor(phase)} />
-          <SpellingInProgress spelling={phase.spelling} />
-        </>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-2 text-center">
+      <RoundHeader roundNumber={phase.roundNumber} totalRounds={phase.totalRounds} />
+      <div className="animate-[proj-bob_2s_ease-in-out_infinite] text-[64px]" aria-hidden="true">
+        🐝
+      </div>
+      <CurrentParticipant name={phase.participantName} subtitle={subtitleFor(phase)} />
+      <SpellingInProgress spelling={phase.spelling} />
     </div>
   );
 }

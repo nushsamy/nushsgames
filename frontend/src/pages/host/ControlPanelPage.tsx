@@ -10,7 +10,6 @@ import { ParticipantsTabs } from "@/components/control/ParticipantsTabs";
 import { StandingsTable } from "@/components/control/StandingsTable";
 import { AddParticipantsModal } from "@/components/control/AddParticipantsModal";
 import { WinnerScreen } from "@/components/control/WinnerScreen";
-import { Button } from "@/components/ui/button";
 import { useControlPanelStore } from "@/store/controlPanelStore";
 import { useGameSocket } from "@/socket/useGameSocket";
 import { useBeeStatusGuard } from "@/hooks/useBeeStatusGuard";
@@ -57,7 +56,7 @@ export function ControlPanelPage() {
   });
 
   if (loading || !bee) {
-    return <p className="text-muted-foreground">Loading...</p>;
+    return <p className="font-semibold text-[oklch(0.6_0.04_340)]">Loading...</p>;
   }
 
   const roundNotStarted = !bee.roundStarted;
@@ -107,15 +106,15 @@ export function ControlPanelPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3.5">
           {bee.gamekey && <GamekeyBox gamekey={bee.gamekey} />}
           <ConnectionIndicator status={connectionStatus} />
         </div>
         <EndBeeConfirmDialog onConfirm={() => void handleEndBee()} />
       </div>
 
-      <p className="text-sm text-muted-foreground">
+      <p className="m-0 text-sm font-semibold text-[oklch(0.55_0.05_340)]">
         {participants.active.length} participant{participants.active.length === 1 ? "" : "s"} active &middot;{" "}
         {participants.eliminated.length} eliminated
       </p>
@@ -133,23 +132,42 @@ export function ControlPanelPage() {
       )}
 
       {roundNotStarted && (
-        <div className="rounded-md border p-4">
-          <p className="mb-3 font-medium">Round {bee.currentRound} hasn't started yet.</p>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setAddParticipantsOpen(true)}>
+        <div className="rounded-[20px] border-2 border-[oklch(0.9_0.05_340)] bg-[oklch(0.99_0.015_340)] p-5">
+          <p className="mb-3 font-fredoka font-semibold text-[oklch(0.4_0.12_340)]">
+            Round {bee.currentRound} hasn't started yet.
+          </p>
+          <div className="flex gap-2.5">
+            <button
+              type="button"
+              onClick={() => setAddParticipantsOpen(true)}
+              className="h-10 cursor-pointer rounded-full border-2 border-[oklch(0.85_0.06_340)] bg-white px-5 font-fredoka text-sm font-bold text-[oklch(0.45_0.14_340)]"
+            >
               Add Participants
-            </Button>
-            <Button onClick={() => void handleStartRound()} disabled={participants.active.length === 0}>
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleStartRound()}
+              disabled={participants.active.length === 0}
+              className="h-10 cursor-pointer rounded-full border-none bg-[linear-gradient(135deg,oklch(0.72_0.17_340),oklch(0.75_0.15_20))] px-5 font-fredoka text-sm font-bold text-white shadow-[0_6px_14px_oklch(0.7_0.17_340_/_0.4)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
               Start Round {bee.currentRound}
-            </Button>
+            </button>
           </div>
         </div>
       )}
 
       {roundComplete && (
-        <div className="rounded-md border p-4">
-          <p className="mb-3 font-medium">Round {bee.currentRound} complete.</p>
-          <Button onClick={() => setAddParticipantsOpen(true)}>Next Round</Button>
+        <div className="rounded-[20px] border-2 border-[oklch(0.9_0.05_340)] bg-[oklch(0.99_0.015_340)] p-5">
+          <p className="mb-3 font-fredoka font-semibold text-[oklch(0.4_0.12_340)]">
+            Round {bee.currentRound} complete.
+          </p>
+          <button
+            type="button"
+            onClick={() => setAddParticipantsOpen(true)}
+            className="h-10 cursor-pointer rounded-full border-none bg-[linear-gradient(135deg,oklch(0.72_0.17_340),oklch(0.75_0.15_20))] px-5 font-fredoka text-sm font-bold text-white shadow-[0_6px_14px_oklch(0.7_0.17_340_/_0.4)]"
+          >
+            Next Round
+          </button>
         </div>
       )}
 

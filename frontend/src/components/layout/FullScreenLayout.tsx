@@ -16,10 +16,13 @@ export function FullScreenLayout({ children, transitionKey }: FullScreenLayoutPr
   }, [transitionKey]);
 
   return (
-    <div className="dark flex min-h-screen w-full items-center justify-center bg-background px-8 py-12 text-foreground">
+    <div className="flex min-h-screen w-full items-center justify-center bg-[linear-gradient(160deg,oklch(0.97_0.03_340)_0%,oklch(0.96_0.035_90)_45%,oklch(0.95_0.04_250)_100%)] px-8 py-12 font-nunito">
       <div
         key={transitionKey}
-        className={cn("w-full max-w-5xl transition-opacity duration-400", visible ? "opacity-100" : "opacity-0")}
+        className={cn(
+          "w-full max-w-3xl transition-opacity duration-400",
+          visible ? "opacity-100" : "opacity-0",
+        )}
       >
         {children}
       </div>

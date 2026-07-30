@@ -1,10 +1,16 @@
 import { cn } from "@/lib/utils";
 import type { ConnectionStatus } from "@/socket/types";
 
-const COLORS: Record<ConnectionStatus, string> = {
-  connected: "bg-success",
-  reconnecting: "bg-warning",
-  disconnected: "bg-destructive",
+const DOT_COLORS: Record<ConnectionStatus, string> = {
+  connected: "bg-[oklch(0.65_0.15_145)]",
+  reconnecting: "bg-[oklch(0.7_0.15_85)]",
+  disconnected: "bg-[oklch(0.6_0.15_25)]",
+};
+
+const TEXT_COLORS: Record<ConnectionStatus, string> = {
+  connected: "text-[oklch(0.5_0.12_145)]",
+  reconnecting: "text-[oklch(0.55_0.12_85)]",
+  disconnected: "text-[oklch(0.6_0.15_25)]",
 };
 
 const LABELS: Record<ConnectionStatus, string> = {
@@ -15,8 +21,8 @@ const LABELS: Record<ConnectionStatus, string> = {
 
 export function ConnectionIndicator({ status }: { status: ConnectionStatus }) {
   return (
-    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-      <span className={cn("size-2.5 rounded-full", COLORS[status])} />
+    <div className={cn("flex items-center gap-1.5 text-[13px] font-bold", TEXT_COLORS[status])}>
+      <span className={cn("size-2 rounded-full", DOT_COLORS[status])} />
       {LABELS[status]}
     </div>
   );

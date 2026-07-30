@@ -5,9 +5,13 @@ interface RoundHeaderProps {
 
 export function RoundHeader({ roundNumber, totalRounds }: RoundHeaderProps) {
   return (
-    <div className="text-center">
-      <h1 className="text-proj-round font-bold tracking-tight">Round {roundNumber}</h1>
-      {totalRounds > 0 && <p className="mt-2 text-2xl text-muted-foreground">of {totalRounds}</p>}
-    </div>
+    <p className="m-0 font-fredoka text-xl font-bold tracking-wide text-[oklch(0.55_0.08_250)] uppercase">
+      Round {roundNumber}
+      {totalRounds > 0 && (
+        <span className="ml-1 text-base font-bold tracking-normal text-[oklch(0.6_0.04_340)] normal-case">
+          of {totalRounds}
+        </span>
+      )}
+    </p>
   );
 }
