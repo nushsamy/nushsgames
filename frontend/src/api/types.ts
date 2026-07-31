@@ -95,6 +95,7 @@ export interface GamekeyStateResponse {
   currentRound: number;
   totalRounds: number;
   currentParticipant: string | null;
+  nextParticipant: string | null;
   participants: ParticipantsList;
   standings: Standings | null;
 }

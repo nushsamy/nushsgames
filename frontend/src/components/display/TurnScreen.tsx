@@ -8,7 +8,7 @@ type TurnPhase = Extract<Phase, { kind: "turn" }>;
 
 function subtitleFor(phase: TurnPhase): string {
   if (!phase.participantName) return "Get ready…";
-  return phase.turnStage === "typing" ? `${phase.participantName} is spelling…` : `${phase.participantName} is up next`;
+  return phase.turnStage === "typing" ? `${phase.participantName} is spelling…` : `${phase.participantName}'s turn`;
 }
 
 export function TurnScreen({ phase }: { phase: TurnPhase }) {

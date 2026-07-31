@@ -22,5 +22,9 @@ describe("VerdictBadge", () => {
     );
     expect(screen.getByText("✗ Incorrect")).toBeInTheDocument();
     expect(screen.getByText("Bob is eliminated")).toBeInTheDocument();
+    expect(screen.getByText("Your spelling")).toBeInTheDocument();
+    expect(screen.getByText("BANANNA")).toBeInTheDocument();
+    expect(screen.getByText("✓ Correct spelling")).toBeInTheDocument();
+    expect(screen.getByText("BANANA")).toBeInTheDocument();
   });
 });

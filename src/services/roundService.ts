@@ -99,6 +99,7 @@ export interface NextTurn {
   participant: Participant;
   word: string;
   turnIndexInRound: number;
+  upNext: Participant | null;
 }
 
 export function requireInProgress(bee: SpellingBee): void {
@@ -137,14 +138,16 @@ export async function getNextTurn(
   const bee = await getBeeById(prisma, beeId);
   requireInProgress(bee);
 
-  const [nextParticipant, assignedWords] = await Promise.all([
-    prisma.participant.findFirst({
+  const [queue, assignedWords] = await Promise.all([
+    prisma.participant.findMany({
       where: { beeId, isActive: true, isEliminated: false },
       orderBy: { id: "asc" },
+      take: 2,
     }),
     getCurrentRoundWords(prisma, beeId),
   ]);
 
+  const nextParticipant = queue[0];
   if (!nextParticipant) {
     return null;
   }
@@ -159,6 +162,7 @@ export async function getNextTurn(
     participant: nextParticipant,
     word: pickWordForTurn(assignedWords, turnIndexInRound),
     turnIndexInRound,
+    upNext: queue[1] ?? null,
   };
 }
 

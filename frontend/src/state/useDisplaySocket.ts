@@ -53,6 +53,7 @@ export function useDisplaySocket(gamekey: string): UseDisplaySocketResult {
           roundNumber: data.currentRound,
           totalRounds: data.totalRounds,
           currentParticipant: data.currentParticipant,
+          nextParticipant: data.nextParticipant,
           winner,
         });
       } catch (err) {
@@ -116,12 +117,13 @@ export function useDisplaySocket(gamekey: string): UseDisplaySocketResult {
         dispatch({ type: "conn:reconnecting" });
       });
 
-      socket.on("round:start", ({ roundNumber, participantName }) => {
+      socket.on("round:start", ({ roundNumber, participantName, nextParticipantName }) => {
         dispatchOrBuffer({
           type: "round:start",
           roundNumber,
           totalRounds,
           participantName: participantName ?? null,
+          nextParticipantName: nextParticipantName ?? null,
         });
       });
 

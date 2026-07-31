@@ -4,12 +4,14 @@ function turnPhase(input: {
   roundNumber: number;
   totalRounds: number;
   participantName: string | null;
+  nextParticipantName: string | null;
 }): Phase {
   return {
     kind: "turn",
     roundNumber: input.roundNumber,
     totalRounds: input.totalRounds,
     participantName: input.participantName,
+    nextParticipantName: input.nextParticipantName,
     turnStage: "awaiting",
     spelling: "",
     verdict: null,
@@ -31,6 +33,7 @@ export function displayReducer(state: DisplayState, action: DisplayAction): Disp
           roundNumber: action.roundNumber,
           totalRounds: action.totalRounds,
           participantName: action.currentParticipant,
+          nextParticipantName: action.nextParticipant,
         }),
       };
     }
@@ -46,6 +49,7 @@ export function displayReducer(state: DisplayState, action: DisplayAction): Disp
           roundNumber: action.roundNumber,
           totalRounds: action.totalRounds,
           participantName: action.participantName,
+          nextParticipantName: action.nextParticipantName,
         }),
       };
 
@@ -80,6 +84,7 @@ export function displayReducer(state: DisplayState, action: DisplayAction): Disp
           spelling: "",
           verdict: null,
           participantName: null,
+          nextParticipantName: null,
         },
       };
     }

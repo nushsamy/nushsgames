@@ -117,6 +117,8 @@ export function createBeesRouter(prisma: PrismaClient, io: SocketIOServer): Rout
       roundNumber: bee.currentRound,
       participantId: nextTurn.participant.id,
       participantName: nextTurn.participant.name,
+      nextParticipantId: nextTurn.upNext?.id,
+      nextParticipantName: nextTurn.upNext?.name,
     });
     res.status(200).json({ bee, currentTurn: nextTurn });
   });

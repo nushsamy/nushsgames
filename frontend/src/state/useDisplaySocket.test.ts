@@ -49,6 +49,7 @@ const baseState = {
   currentRound: 1,
   totalRounds: 2,
   currentParticipant: "Alice",
+  nextParticipant: "Bob",
   participants: { active: [], eliminated: [] },
   standings: null,
 };

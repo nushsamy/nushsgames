@@ -44,6 +44,7 @@ export function createGamekeyStateRouter(prisma: PrismaClient): Router {
       currentRound: bee.currentRound,
       totalRounds: bee.totalRounds,
       currentParticipant: currentTurn?.participant.name ?? null,
+      nextParticipant: currentTurn?.upNext?.name ?? null,
       participants,
       standings,
     });

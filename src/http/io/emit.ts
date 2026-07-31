@@ -8,7 +8,13 @@ export function emitToGamekey(io: SocketIOServer, gamekey: string, event: string
 export function emitRoundStart(
   io: SocketIOServer,
   gamekey: string,
-  payload: { roundNumber: number; participantId?: number; participantName?: string },
+  payload: {
+    roundNumber: number;
+    participantId?: number;
+    participantName?: string;
+    nextParticipantId?: number;
+    nextParticipantName?: string;
+  },
 ): void {
   emitToGamekey(io, gamekey, "round:start", payload);
 }

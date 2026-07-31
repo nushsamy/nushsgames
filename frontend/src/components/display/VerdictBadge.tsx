@@ -18,7 +18,20 @@ export function VerdictBadge({ verdict }: VerdictBadgeProps) {
       >
         {verdict.isCorrect ? "✓ Correct" : "✗ Incorrect"}
       </span>
-      <p className="m-0 font-mono text-[34px] font-bold tracking-[6px] text-[oklch(0.42_0.1_340)]">{verdict.word.toUpperCase()}</p>
+      {verdict.isCorrect ? (
+        <p className="m-0 font-mono text-[34px] font-bold tracking-[6px] text-[oklch(0.42_0.1_340)]">{verdict.word.toUpperCase()}</p>
+      ) : (
+        <div className="flex animate-[proj-pop-in_0.3s_ease-out] flex-col items-center gap-3">
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-sm font-semibold uppercase tracking-wide text-[oklch(0.5_0.05_340)]">Your spelling</span>
+            <p className="m-0 font-mono text-[34px] font-bold tracking-[6px] text-[oklch(0.32_0.12_25)]">{verdict.userSpelling.toUpperCase()}</p>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-sm font-semibold uppercase tracking-wide text-[oklch(0.5_0.05_340)]">✓ Correct spelling</span>
+            <p className="m-0 font-mono text-[34px] font-bold tracking-[6px] text-[oklch(0.28_0.08_145)]">{verdict.word.toUpperCase()}</p>
+          </div>
+        </div>
+      )}
       <p className="m-0 text-[19px] font-semibold text-[oklch(0.5_0.05_340)]">
         {verdict.isCorrect
           ? `${verdict.participantName} advances to the next round!`

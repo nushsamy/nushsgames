@@ -22,6 +22,7 @@ export type Phase =
       roundNumber: number;
       totalRounds: number;
       participantName: string | null;
+      nextParticipantName: string | null;
       turnStage: TurnStage;
       spelling: string;
       verdict: Verdict | null;
@@ -36,10 +37,10 @@ export interface DisplayState {
 }
 
 export type DisplayAction =
-  | { type: "hydrate:success"; status: "in_progress" | "completed"; roundNumber: number; totalRounds: number; currentParticipant: string | null; winner: WinnerInfo | null }
+  | { type: "hydrate:success"; status: "in_progress" | "completed"; roundNumber: number; totalRounds: number; currentParticipant: string | null; nextParticipant: string | null; winner: WinnerInfo | null }
   | { type: "hydrate:error"; message: string }
   | { type: "join:error"; message: string }
-  | { type: "round:start"; roundNumber: number; totalRounds: number; participantName: string | null }
+  | { type: "round:start"; roundNumber: number; totalRounds: number; participantName: string | null; nextParticipantName: string | null }
   | { type: "typing:update"; currentSpelling: string }
   | { type: "response:submitted"; verdict: Verdict }
   | { type: "verdict:cleared" }

@@ -5,6 +5,7 @@ import { GameOverScreen } from "@/components/display/GameOverScreen";
 import { LoadingScreen } from "@/components/display/LoadingScreen";
 import { RoundResultsScreen } from "@/components/display/RoundResultsScreen";
 import { TurnScreen } from "@/components/display/TurnScreen";
+import { UpNextBadge } from "@/components/display/UpNextBadge";
 import { WinnerScreen } from "@/components/display/WinnerScreen";
 import { FullScreenLayout } from "@/components/layout/FullScreenLayout";
 import { useDisplaySocket } from "@/state/useDisplaySocket";
@@ -27,6 +28,9 @@ export function DisplayPage() {
         {phase.kind === "winner" && <WinnerScreen name={phase.winner.name} />}
         {phase.kind === "gameOverNoWinner" && <GameOverScreen />}
       </FullScreenLayout>
+      {phase.kind === "turn" && phase.turnStage !== "verdict" && phase.nextParticipantName && (
+        <UpNextBadge name={phase.nextParticipantName} />
+      )}
       <ConnectionOverlay connection={state.connection} onRetry={retryConnection} />
     </>
   );

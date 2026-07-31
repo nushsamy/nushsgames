@@ -9,6 +9,7 @@ const inTurn: DisplayState = {
     roundNumber: 1,
     totalRounds: 3,
     participantName: "Alice",
+    nextParticipantName: "Bob",
     turnStage: "awaiting",
     spelling: "",
     verdict: null,
@@ -23,6 +24,7 @@ describe("displayReducer", () => {
       roundNumber: 2,
       totalRounds: 4,
       currentParticipant: "Bob",
+      nextParticipant: "Zoe",
       winner: null,
     });
     expect(result.phase).toEqual({
@@ -30,6 +32,7 @@ describe("displayReducer", () => {
       roundNumber: 2,
       totalRounds: 4,
       participantName: "Bob",
+      nextParticipantName: "Zoe",
       turnStage: "awaiting",
       spelling: "",
       verdict: null,
@@ -43,6 +46,7 @@ describe("displayReducer", () => {
       roundNumber: 1,
       totalRounds: 1,
       currentParticipant: null,
+      nextParticipant: null,
       winner: null,
     });
     expect(result.phase.kind).toBe("turn");
@@ -59,6 +63,7 @@ describe("displayReducer", () => {
       roundNumber: 3,
       totalRounds: 3,
       currentParticipant: null,
+      nextParticipant: null,
       winner,
     });
     expect(result.phase).toEqual({ kind: "winner", winner });
@@ -71,6 +76,7 @@ describe("displayReducer", () => {
       roundNumber: 3,
       totalRounds: 3,
       currentParticipant: null,
+      nextParticipant: null,
       winner: null,
     });
     expect(result.phase).toEqual({ kind: "gameOverNoWinner" });
@@ -93,12 +99,14 @@ describe("displayReducer", () => {
       roundNumber: 2,
       totalRounds: 3,
       participantName: null,
+      nextParticipantName: null,
     });
     expect(result.phase).toEqual({
       kind: "turn",
       roundNumber: 2,
       totalRounds: 3,
       participantName: null,
+      nextParticipantName: null,
       turnStage: "awaiting",
       spelling: "",
       verdict: null,
@@ -133,7 +141,13 @@ describe("displayReducer", () => {
       } as DisplayState["phase"],
     };
     const result = displayReducer(inVerdict, { type: "verdict:cleared" });
-    expect(result.phase).toMatchObject({ turnStage: "awaiting", spelling: "", verdict: null, participantName: null });
+    expect(result.phase).toMatchObject({
+      turnStage: "awaiting",
+      spelling: "",
+      verdict: null,
+      participantName: null,
+      nextParticipantName: null,
+    });
 
     // No-op when not in the verdict stage.
     expect(displayReducer(inTurn, { type: "verdict:cleared" })).toBe(inTurn);
