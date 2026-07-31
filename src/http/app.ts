@@ -6,6 +6,7 @@ import { createAuthRouter } from "./routes/auth.routes.ts";
 import { createBeesRouter } from "./routes/bees.routes.ts";
 import { createParticipantsRouter } from "./routes/participants.routes.ts";
 import { createJoinRouter, createGamekeyStateRouter } from "./routes/public.routes.ts";
+import { createDictionaryRouter } from "./routes/dictionary.routes.ts";
 import { errorHandler } from "./errors.ts";
 
 export function createApp(prisma: PrismaClient, io: SocketIOServer): Express {
@@ -18,6 +19,7 @@ export function createApp(prisma: PrismaClient, io: SocketIOServer): Express {
   app.use("/api/participants", createParticipantsRouter(prisma));
   app.use("/api/join", createJoinRouter(prisma, io));
   app.use("/api/gamekey", createGamekeyStateRouter(prisma));
+  app.use("/api/dictionary", createDictionaryRouter());
 
   app.use((_req, res) => {
     res.status(404).json({ error: { code: "NOT_FOUND", message: "Route not found" } });
