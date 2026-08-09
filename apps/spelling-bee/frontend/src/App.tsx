@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { LandingPage } from "@/pages/LandingPage";
+import { GameSelectPage } from "@/pages/GameSelectPage";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { RegisterPage } from "@/pages/auth/RegisterPage";
 import { CreateBeePage } from "@/pages/host/CreateBeePage";
@@ -23,6 +24,7 @@ function App() {
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AppShell />}>
+          <Route path="/games" element={<GameSelectPage />} />
           <Route path="/host/create" element={<CreateBeePage />} />
           <Route path="/host/bees" element={<BeesListPage />} />
           <Route path="/host/:beeId/builder" element={<RoundBuilderPage />} />

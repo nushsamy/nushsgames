@@ -12,6 +12,7 @@ import { StandingsTable } from "@/components/control/StandingsTable";
 import { AddParticipantsModal } from "@/components/control/AddParticipantsModal";
 import { WinnerScreen } from "@/components/control/WinnerScreen";
 import { useControlPanelStore } from "@/store/controlPanelStore";
+import { useBreadcrumbStore } from "@/store/breadcrumbStore";
 import { useGameSocket } from "@/socket/useGameSocket";
 import { useBeeStatusGuard } from "@/hooks/useBeeStatusGuard";
 
@@ -45,6 +46,12 @@ export function ControlPanelPage() {
   useEffect(() => {
     void loadInitial(id);
   }, [id, loadInitial]);
+
+  const setBreadcrumbLabel = useBreadcrumbStore((s) => s.setLabel);
+  useEffect(() => {
+    setBreadcrumbLabel(bee?.title ?? null);
+    return () => setBreadcrumbLabel(null);
+  }, [bee?.title, setBreadcrumbLabel]);
 
   const { connectionStatus, emit } = useGameSocket(bee?.gamekey ?? null, {
     "round:start": () => void refresh(),

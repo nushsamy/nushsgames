@@ -8,6 +8,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+/**
+ * Maps a gamekey's prefix (the part before the first "-") to the route for that game
+ * type's display client. Only spelling bee exists today; new game types register their
+ * prefix here rather than needing a new join flow.
+ */
+const GAME_KEY_ROUTES: Record<string, (gamekey: string) => string> = {
+  BEE: (gamekey) => `/display/${gamekey}`,
+};
+
+function resolveGameKeyRoute(gamekey: string): string | null {
+  const prefix = gamekey.split("-")[0];
+  const resolver = GAME_KEY_ROUTES[prefix];
+  return resolver ? resolver(gamekey) : null;
+}
+
 export function JoinPage() {
   const navigate = useNavigate();
   const [gamekey, setGamekey] = useState("");
@@ -19,11 +34,17 @@ export function JoinPage() {
     const trimmed = gamekey.trim();
     if (!trimmed) return;
 
+    const route = resolveGameKeyRoute(trimmed);
+    if (!route) {
+      setError("Unrecognized game key. Please check and try again.");
+      return;
+    }
+
     setIsJoining(true);
     setError(null);
     try {
       await getGamekeyState(trimmed);
-      navigate(`/display/${trimmed}`);
+      navigate(route);
     } catch (err) {
       const message =
         err instanceof ApiError && err.status === 404
@@ -41,7 +62,7 @@ export function JoinPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Enter Game Key</CardTitle>
-          <CardDescription>Join a spelling bee to watch it live on this screen.</CardDescription>
+          <CardDescription>Join a game to watch it live on this screen.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">

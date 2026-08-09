@@ -58,4 +58,20 @@ describe("JoinPage", () => {
     await user.click(screen.getByRole("button", { name: /join/i }));
     expect(navigate).toHaveBeenCalledWith("/display/BEE-NOPE99");
   });
+
+  it("shows an error and skips the API call for an unrecognized gamekey prefix", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <JoinPage />
+      </MemoryRouter>,
+    );
+
+    await user.type(screen.getByPlaceholderText("BEE-A7F2K9"), "XYZ-1234");
+    await user.click(screen.getByRole("button", { name: /join/i }));
+
+    expect(await screen.findByText("Unrecognized game key. Please check and try again.")).toBeInTheDocument();
+    expect(getGamekeyState).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+  });
 });

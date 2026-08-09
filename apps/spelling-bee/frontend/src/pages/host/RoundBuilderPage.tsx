@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { RoundListItem } from "@/components/roundBuilder/RoundListItem";
 import { DeleteBeeDialog } from "@/components/bees/DeleteBeeDialog";
 import { useRoundBuilder } from "@/hooks/useRoundBuilder";
 import { useBeeStatusGuard } from "@/hooks/useBeeStatusGuard";
+import { useBreadcrumbStore } from "@/store/breadcrumbStore";
 
 export function RoundBuilderPage() {
   const { beeId } = useParams<{ beeId: string }>();
@@ -13,6 +15,12 @@ export function RoundBuilderPage() {
     useRoundBuilder(id);
 
   useBeeStatusGuard(bee, notFound, loading, "builder");
+
+  const setBreadcrumbLabel = useBreadcrumbStore((s) => s.setLabel);
+  useEffect(() => {
+    setBreadcrumbLabel(bee?.title ?? null);
+    return () => setBreadcrumbLabel(null);
+  }, [bee?.title, setBreadcrumbLabel]);
 
   if (loading || !bee) {
     return <p className="font-semibold text-[oklch(0.6_0.04_340)]">Loading...</p>;
