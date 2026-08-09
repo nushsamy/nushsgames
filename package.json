@@ -1,0 +1,24 @@
+{
+  "name": "nushsgames",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=apps/spelling-bee",
+    "start": "npm run start --workspace=apps/spelling-bee",
+    "dev": "npm run dev --workspace=apps/spelling-bee",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "db:up": "npm run db:up --workspace=apps/spelling-bee",
+    "db:down": "npm run db:down --workspace=apps/spelling-bee"
+  },
+  "allowScripts": {
+    "@prisma/engines@7.9.0": true,
+    "esbuild@0.28.1": true,
+    "prisma@7.9.0": true,
+    "bcrypt@6.0.0": true
+  }
+}

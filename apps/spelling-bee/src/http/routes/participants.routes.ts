@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { PrismaClient } from "../../../generated/prisma/client.ts";
-import { requireAuth } from "../middleware/auth.ts";
+import { requireAuth } from "@nushsgames/shared-auth";
 import { loadParticipantParam } from "../middleware/ownership.ts";
 import { updateParticipantStatus } from "../../services/participantService.ts";
 import { asOptionalBoolean } from "../validate.ts";

@@ -4,8 +4,8 @@ import {
   signRefreshToken,
   verifyAccessToken,
   verifyRefreshToken,
-} from "../../src/http/jwt.ts";
-import { UnauthorizedError } from "../../src/http/errors.ts";
+} from "../src/utils/jwt.ts";
+import { UnauthorizedError } from "../src/errors.ts";
 
 beforeAll(() => {
   process.env.JWT_SECRET ??= "test-secret";

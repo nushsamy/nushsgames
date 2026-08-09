@@ -1,29 +1,6 @@
 import type { ErrorRequestHandler } from "express";
+import { HttpError } from "@nushsgames/shared-auth";
 import { DomainError } from "../errors/index.ts";
-
-export class HttpError extends Error {
-  readonly status: number;
-  readonly code: string;
-
-  constructor(status: number, code: string, message: string) {
-    super(message);
-    this.name = new.target.name;
-    this.status = status;
-    this.code = code;
-  }
-}
-
-export class UnauthorizedError extends HttpError {
-  constructor(message: string) {
-    super(401, "UNAUTHORIZED", message);
-  }
-}
-
-export class ForbiddenError extends HttpError {
-  constructor(message: string) {
-    super(403, "FORBIDDEN", message);
-  }
-}
 
 const DOMAIN_ERROR_STATUS: Record<string, number> = {
   VALIDATION_ERROR: 400,

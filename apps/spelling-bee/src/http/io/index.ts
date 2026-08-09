@@ -2,7 +2,7 @@ import { Server as SocketIOServer, type Socket } from "socket.io";
 import type { Server as HttpServer } from "node:http";
 import type { PrismaClient } from "../../../generated/prisma/client.ts";
 import { getBeeByGamekey } from "../../services/beeService.ts";
-import { verifyAccessToken } from "../jwt.ts";
+import { verifyAccessToken } from "@nushsgames/shared-auth";
 import { roomName, hostRoomName } from "./rooms.ts";
 
 type Role = "host" | "display";

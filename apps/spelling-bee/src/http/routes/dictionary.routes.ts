@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth.ts";
+import { requireAuth } from "@nushsgames/shared-auth";
 import { getWordDefinition } from "../../services/dictionaryService.ts";
 import { asString } from "../validate.ts";
 

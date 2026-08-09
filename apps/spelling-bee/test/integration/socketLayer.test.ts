@@ -3,7 +3,7 @@ import { io as ioClient, type Socket as ClientSocket } from "socket.io-client";
 import { testPrisma } from "../helpers/prismaTestClient.ts";
 import { resetDatabase } from "../helpers/resetDb.ts";
 import { startTestServer, type TestServer } from "../helpers/testServer.ts";
-import { signAccessToken } from "../../src/http/jwt.ts";
+import { signAccessToken } from "@nushsgames/shared-auth";
 import { buildStartedBee, createTestUser } from "../helpers/factories.ts";
 
 let server: TestServer;

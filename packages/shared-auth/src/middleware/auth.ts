@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { verifyAccessToken } from "../jwt.ts";
+import { verifyAccessToken } from "../utils/jwt.ts";
 import { UnauthorizedError } from "../errors.ts";
 
 export function requireAuth(req: Request, _res: Response, next: NextFunction): void {

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { PrismaClient } from "../../../generated/prisma/client.ts";
 import type { Server as SocketIOServer } from "socket.io";
-import { requireAuth } from "../middleware/auth.ts";
+import { requireAuth } from "@nushsgames/shared-auth";
 import { loadBeeParam } from "../middleware/ownership.ts";
 import { createBee, startBee, endBee, reopenBee, updateBee, deleteBee } from "../../services/beeService.ts";
 import { addParticipant, listParticipants } from "../../services/participantService.ts";

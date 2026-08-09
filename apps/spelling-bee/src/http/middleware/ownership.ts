@@ -3,7 +3,7 @@ import type { PrismaClient } from "../../../generated/prisma/client.ts";
 import { getBeeById } from "../../services/beeService.ts";
 import { getParticipantById } from "../../services/participantService.ts";
 import { ValidationError } from "../../errors/index.ts";
-import { ForbiddenError } from "../errors.ts";
+import { ForbiddenError } from "@nushsgames/shared-auth";
 
 function parseId(raw: string, fieldName: string): number {
   const id = Number(raw);

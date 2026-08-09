@@ -1,7 +1,7 @@
 import { Prisma } from "../../generated/prisma/client.ts";
 import type { PrismaClient, User } from "../../generated/prisma/client.ts";
 import { ValidationError, EmailAlreadyRegisteredError, InvalidCredentialsError } from "../errors/index.ts";
-import { hashPassword, verifyPassword } from "../http/password.ts";
+import { hashPassword, verifyPassword } from "@nushsgames/shared-auth";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

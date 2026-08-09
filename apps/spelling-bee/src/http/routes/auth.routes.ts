@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { PrismaClient } from "../../../generated/prisma/client.ts";
 import { registerUser, authenticateUser } from "../../services/userService.ts";
-import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../jwt.ts";
+import { signAccessToken, signRefreshToken, verifyRefreshToken } from "@nushsgames/shared-auth";
 import { asString } from "../validate.ts";
 
 function toUserJson(user: { id: number; email: string; createdAt: Date }) {

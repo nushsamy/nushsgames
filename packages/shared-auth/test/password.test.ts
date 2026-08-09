@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { hashPassword, verifyPassword } from "../../src/http/password.ts";
+import { hashPassword, verifyPassword } from "../src/utils/password.ts";
 
 describe("hashPassword / verifyPassword", () => {
   it("round-trips: a hash verifies against its own plaintext", async () => {
