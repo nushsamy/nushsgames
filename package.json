@@ -13,7 +13,21 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "db:up": "npm run db:up --workspace=apps/spelling-bee",
-    "db:down": "npm run db:down --workspace=apps/spelling-bee"
+    "db:down": "npm run db:down --workspace=apps/spelling-bee",
+    "build:murder-mystery-voter": "npm run build --workspace=apps/murder-mystery-voter",
+    "start:murder-mystery-voter": "npm run start --workspace=apps/murder-mystery-voter",
+    "dev:murder-mystery-voter": "npm run dev --workspace=apps/murder-mystery-voter",
+    "db:up:murder-mystery-voter": "npm run db:up --workspace=apps/murder-mystery-voter",
+    "db:down:murder-mystery-voter": "npm run db:down --workspace=apps/murder-mystery-voter",
+    "dev:spelling-bee-frontend": "npm run dev --prefix apps/spelling-bee/frontend",
+    "dev:murder-mystery-voter-frontend": "npm run dev --prefix apps/murder-mystery-voter/frontend",
+    "db:up:all": "npm run db:up && npm run db:up:murder-mystery-voter",
+    "db:down:all": "npm run db:down && npm run db:down:murder-mystery-voter",
+    "predev:all": "npm run db:up:all",
+    "dev:all": "concurrently -n bee-api,bee-web,mystery-api,mystery-web -c blue,cyan,magenta,yellow \"npm run dev\" \"npm run dev:spelling-bee-frontend\" \"npm run dev:murder-mystery-voter\" \"npm run dev:murder-mystery-voter-frontend\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
   },
   "allowScripts": {
     "@prisma/engines@7.9.0": true,

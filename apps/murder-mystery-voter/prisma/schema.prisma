@@ -1,0 +1,121 @@
+// Prisma schema for the murder mystery voter game logic layer.
+// See prisma.config.ts for datasource url / migrations path configuration.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EventStatus {
+  created
+  in_progress
+  completed
+}
+
+enum RoundStatus {
+  pending
+  open
+  closed
+}
+
+enum BallotStatus {
+  pending
+  cast
+  expired
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  events MysteryEvent[]
+
+  @@map("users")
+}
+
+model MysteryEvent {
+  id           Int         @id @default(autoincrement())
+  userId       Int
+  user         User        @relation(fields: [userId], references: [id])
+  title        String
+  status       EventStatus @default(created)
+  totalRounds  Int         @default(0)
+  currentRound Int         @default(0)
+  createdAt    DateTime    @default(now())
+
+  suspects     Suspect[]
+  participants MysteryParticipant[]
+  rounds       MysteryRound[]
+
+  @@index([userId])
+  @@map("mystery_events")
+}
+
+model Suspect {
+  id          Int          @id @default(autoincrement())
+  eventId     Int
+  event       MysteryEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+
+  ballots Ballot[]
+
+  @@unique([eventId, name])
+  @@index([eventId])
+  @@map("suspects")
+}
+
+model MysteryParticipant {
+  id          Int          @id @default(autoincrement())
+  eventId     Int
+  event       MysteryEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name        String
+  email       String
+  isAttending Boolean      @default(true)
+
+  ballots Ballot[]
+
+  @@unique([eventId, email])
+  @@index([eventId])
+  @@map("mystery_participants")
+}
+
+model MysteryRound {
+  id          String      @id @default(uuid())
+  eventId     Int
+  event       MysteryEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  roundNumber Int
+  suspectIds  Json
+  status      RoundStatus @default(pending)
+
+  ballots Ballot[]
+
+  @@unique([eventId, roundNumber])
+  @@index([eventId])
+  @@map("mystery_rounds")
+}
+
+model Ballot {
+  id             String             @id @default(uuid())
+  roundId        String
+  round          MysteryRound       @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  participantId  Int
+  participant    MysteryParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  token          String             @unique
+  status         BallotStatus       @default(pending)
+  votedSuspectId Int?
+  votedSuspect   Suspect?           @relation(fields: [votedSuspectId], references: [id])
+  createdAt      DateTime           @default(now())
+  castAt         DateTime?
+  emailError     String?
+
+  @@unique([roundId, participantId])
+  @@index([roundId])
+  @@map("ballots")
+}
