@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { testPrisma } from "../helpers/prismaTestClient.ts";
 import { resetDatabase } from "../helpers/resetDb.ts";
-import { buildEvent } from "../helpers/factories.ts";
+import { buildEvent, type BuildEventOptions } from "../helpers/factories.ts";
 import { startEvent, endEvent } from "../../src/services/eventService.ts";
 import { setAttendance } from "../../src/services/participantService.ts";
 import { addRound } from "../../src/services/roundService.ts";
@@ -13,8 +13,8 @@ beforeEach(async () => {
   await resetDatabase(testPrisma);
 });
 
-async function buildStartedEvent() {
-  const built = await buildEvent(testPrisma);
+async function buildStartedEvent(overrides: BuildEventOptions = {}) {
+  const built = await buildEvent(testPrisma, overrides);
   await addRound(testPrisma, built.event.id);
   await addRound(testPrisma, built.event.id);
   await startEvent(testPrisma, built.event.id);
@@ -68,7 +68,7 @@ describe("round open/close", () => {
     const { ballots } = await openRound(testPrisma, built.event.id, 1);
 
     // Only the first participant votes; the rest stay pending and should expire on close.
-    await castVote(testPrisma, ballots[0].token, built.suspects[0].id);
+    await castVote(testPrisma, ballots[0].token, built.suspects[1].id);
     await closeRound(testPrisma, built.event.id, 1);
 
     const tally = await getRoundTally(testPrisma, built.event.id, 1);
@@ -78,17 +78,26 @@ describe("round open/close", () => {
   });
 
   it("computes suspect tallies from cast ballots only", async () => {
-    const built = await buildStartedEvent();
+    const built = await buildStartedEvent({
+      participants: [
+        { name: "Pat", email: "pat@test.dev", characterName: "Butler" },
+        { name: "Sam", email: "sam@test.dev", characterName: "Maid" },
+        { name: "Lee", email: "lee@test.dev", characterName: "Gardener" },
+      ],
+    });
     await setAttendance(testPrisma, built.event.id, built.participants.map((p) => p.id));
     const { ballots } = await openRound(testPrisma, built.event.id, 1);
 
+    // Everyone but the target votes for them; the target's own ballot can't vote for itself.
+    const target = built.suspects[0];
     for (const ballot of ballots) {
-      await castVote(testPrisma, ballot.token, built.suspects[0].id);
+      if (ballot.participantId === target.id) continue;
+      await castVote(testPrisma, ballot.token, target.id);
     }
 
     const tally = await getRoundTally(testPrisma, built.event.id, 1);
-    const winner = tally.tally.find((t) => t.suspectId === built.suspects[0].id)!;
-    expect(winner.count).toBe(ballots.length);
+    const winner = tally.tally.find((t) => t.suspectId === target.id)!;
+    expect(winner.count).toBe(ballots.length - 1);
     expect(winner.percentage).toBe(100);
   });
 

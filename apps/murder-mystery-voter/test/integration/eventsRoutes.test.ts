@@ -109,7 +109,7 @@ describe("public vote routes", () => {
 
     const postRes = await request(server.app)
       .post(`/api/vote/${ballots[0].token}`)
-      .send({ suspectId: suspects[0].id });
+      .send({ suspectId: suspects[1].id });
     expect(postRes.status).toBe(200);
     expect(postRes.body.ok).toBe(true);
 

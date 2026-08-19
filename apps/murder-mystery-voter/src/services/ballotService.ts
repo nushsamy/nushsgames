@@ -49,7 +49,7 @@ export async function getBallotByToken(prisma: PrismaClient, token: string): Pro
   assertVotable(ballot);
 
   const suspects = await prisma.mysteryParticipant.findMany({
-    where: { eventId: ballot.round.eventId },
+    where: { eventId: ballot.round.eventId, id: { not: ballot.participantId } },
     orderBy: { id: "asc" },
     select: { id: true, characterName: true, description: true },
   });
@@ -79,6 +79,10 @@ export async function castVote(prisma: PrismaClient, token: string, suspectId: n
     }
     if (ballot.round.status === "pending") {
       throw new RoundNotOpenError("Voting hasn't opened for this round yet");
+    }
+
+    if (suspectId === ballot.participantId) {
+      throw new ValidationError("suspectId is not eligible for this round");
     }
 
     const suspect = await tx.mysteryParticipant.findFirst({
