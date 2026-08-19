@@ -11,7 +11,7 @@ function requireEnv(name: string): string {
 }
 
 requireEnv("JWT_SECRET");
-requireEnv("FRONTEND_URLS");
+requireEnv("FRONTEND_URL");
 
 const port = Number(process.env.PORT ?? 5002);
 
