@@ -5,8 +5,6 @@ export async function resetDatabase(prisma: PrismaClient): Promise<void> {
     prisma.ballot.deleteMany(),
     prisma.mysteryRound.deleteMany(),
     prisma.mysteryParticipant.deleteMany(),
-    prisma.suspect.deleteMany(),
     prisma.mysteryEvent.deleteMany(),
-    prisma.user.deleteMany(),
   ]);
 }

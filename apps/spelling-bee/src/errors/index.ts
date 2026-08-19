@@ -50,18 +50,6 @@ export class RoundNotCompleteError extends DomainError {
   }
 }
 
-export class EmailAlreadyRegisteredError extends DomainError {
-  constructor(message: string) {
-    super(message, "EMAIL_ALREADY_REGISTERED");
-  }
-}
-
-export class InvalidCredentialsError extends DomainError {
-  constructor(message: string) {
-    super(message, "INVALID_CREDENTIALS");
-  }
-}
-
 export class RoundInProgressError extends DomainError {
   constructor(message: string) {
     super(message, "ROUND_IN_PROGRESS");

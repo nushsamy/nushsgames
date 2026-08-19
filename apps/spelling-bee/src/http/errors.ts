@@ -11,8 +11,6 @@ const DOMAIN_ERROR_STATUS: Record<string, number> = {
   PARTICIPANT_NOT_ELIGIBLE: 409,
   ROUND_NOT_COMPLETE: 409,
   ROUND_IN_PROGRESS: 409,
-  EMAIL_ALREADY_REGISTERED: 409,
-  INVALID_CREDENTIALS: 401,
 };
 
 export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {

@@ -13,9 +13,9 @@ async function addRounds(beeId: number, roundWords: string[][]): Promise<void> {
 }
 
 async function main() {
-  const host = await prisma.user.create({
-    data: { email: "host@example.com", passwordHash: "seed-placeholder-hash" },
-  });
+  // Users live in the separate @nushsgames/auth service's database now — register
+  // "host@example.com" there (npm run dev --workspace=apps/auth) to actually log in as this seed data's host.
+  const host = { id: 1 };
 
   // Bee 1: never started — exercises the bare "created" state.
   const fallRegional = await createBee(prisma, {

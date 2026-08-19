@@ -68,14 +68,3 @@ export class BallotExpiredError extends DomainError {
   }
 }
 
-export class EmailAlreadyRegisteredError extends DomainError {
-  constructor(message: string) {
-    super(message, "EMAIL_ALREADY_REGISTERED");
-  }
-}
-
-export class InvalidCredentialsError extends DomainError {
-  constructor(message: string) {
-    super(message, "INVALID_CREDENTIALS");
-  }
-}

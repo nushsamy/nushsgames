@@ -1,4 +1,4 @@
-import type { PrismaClient, Ballot, MysteryRound, Suspect } from "../../generated/prisma/client.ts";
+import type { PrismaClient, Ballot, MysteryRound, MysteryParticipant } from "../../generated/prisma/client.ts";
 import { NotFoundError, InvalidEventStateError, RoundNotOpenError, RoundAlreadyOpenError, ValidationError } from "../errors/index.ts";
 import { getEventById } from "./eventService.ts";
 import { getRoundByNumber } from "./roundService.ts";
@@ -105,7 +105,7 @@ export async function getRoundTally(prisma: PrismaClient, eventId: number, round
       where: { roundId: round.id },
       include: { participant: true },
     }),
-    prisma.suspect.findMany({ where: { id: { in: round.suspectIds as number[] } } }),
+    prisma.mysteryParticipant.findMany({ where: { eventId } }),
   ]);
 
   const castCount = ballots.filter((b) => b.status === "cast").length;
@@ -119,11 +119,11 @@ export async function getRoundTally(prisma: PrismaClient, eventId: number, round
     }
   }
 
-  const tally: SuspectTally[] = (suspects as Suspect[]).map((suspect) => {
+  const tally: SuspectTally[] = (suspects as MysteryParticipant[]).map((suspect) => {
     const count = countsBySuspect.get(suspect.id) ?? 0;
     return {
       suspectId: suspect.id,
-      name: suspect.name,
+      name: suspect.characterName,
       count,
       percentage: castCount > 0 ? Math.round((count / castCount) * 1000) / 10 : 0,
     };

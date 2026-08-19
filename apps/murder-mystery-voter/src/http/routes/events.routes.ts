@@ -3,17 +3,17 @@ import type { PrismaClient } from "../../../generated/prisma/client.ts";
 import { requireAuth } from "@nushsgames/shared-auth";
 import { loadEventParam } from "../middleware/ownership.ts";
 import { createEvent, updateEvent, startEvent, endEvent, deleteEvent } from "../../services/eventService.ts";
-import { addSuspect, listSuspects, updateSuspect, deleteSuspect } from "../../services/suspectService.ts";
 import {
   addParticipant,
   listParticipants,
+  updateParticipant,
   deleteParticipant,
   setAttendance,
 } from "../../services/participantService.ts";
-import { addRound, setRoundSuspects, listRounds, deleteRound } from "../../services/roundService.ts";
+import { addRound, listRounds, deleteRound } from "../../services/roundService.ts";
 import { openRound, closeRound, getRoundTally, getResendableBallot } from "../../services/roundLifecycleService.ts";
 import { sendRoundBallots, sendBallotEmail } from "../../services/emailService.ts";
-import { asString, asEmail, asPositiveInt, asPositiveIntArray, asIntArray } from "../validate.ts";
+import { asString, asEmail, asPositiveInt, asIntArray } from "../validate.ts";
 
 export function createEventsRouter(prisma: PrismaClient): Router {
   const router = Router();
@@ -62,36 +62,7 @@ export function createEventsRouter(prisma: PrismaClient): Router {
     res.status(200).json(event);
   });
 
-  // --- Suspects ---
-
-  router.get("/:eventId/suspects", async (req, res) => {
-    const suspects = await listSuspects(prisma, req.event!.id);
-    res.status(200).json(suspects);
-  });
-
-  router.post("/:eventId/suspects", async (req, res) => {
-    const name = asString(req.body?.name, "name");
-    const description = req.body?.description !== undefined ? asString(req.body.description, "description") : undefined;
-    const suspect = await addSuspect(prisma, req.event!.id, { name, description });
-    res.status(201).json(suspect);
-  });
-
-  router.patch("/:eventId/suspects/:suspectId", async (req, res) => {
-    const suspectId = asPositiveInt(Number(req.params.suspectId), "suspectId");
-    const updates: { name?: string; description?: string } = {};
-    if (req.body?.name !== undefined) updates.name = asString(req.body.name, "name");
-    if (req.body?.description !== undefined) updates.description = asString(req.body.description, "description");
-    const suspect = await updateSuspect(prisma, req.event!.id, suspectId, updates);
-    res.status(200).json(suspect);
-  });
-
-  router.delete("/:eventId/suspects/:suspectId", async (req, res) => {
-    const suspectId = asPositiveInt(Number(req.params.suspectId), "suspectId");
-    await deleteSuspect(prisma, req.event!.id, suspectId);
-    res.status(204).send();
-  });
-
-  // --- Participants ---
+  // --- Participants (each one doubles as a possible round suspect) ---
 
   router.get("/:eventId/participants", async (req, res) => {
     const participants = await listParticipants(prisma, req.event!.id);
@@ -101,8 +72,21 @@ export function createEventsRouter(prisma: PrismaClient): Router {
   router.post("/:eventId/participants", async (req, res) => {
     const name = asString(req.body?.name, "name");
     const email = asEmail(req.body?.email, "email");
-    const participant = await addParticipant(prisma, req.event!.id, { name, email });
+    const characterName = asString(req.body?.characterName, "characterName");
+    const description = req.body?.description !== undefined ? asString(req.body.description, "description") : undefined;
+    const participant = await addParticipant(prisma, req.event!.id, { name, email, characterName, description });
     res.status(201).json(participant);
+  });
+
+  router.patch("/:eventId/participants/:participantId", async (req, res) => {
+    const participantId = asPositiveInt(Number(req.params.participantId), "participantId");
+    const updates: { name?: string; email?: string; characterName?: string; description?: string } = {};
+    if (req.body?.name !== undefined) updates.name = asString(req.body.name, "name");
+    if (req.body?.email !== undefined) updates.email = asEmail(req.body.email, "email");
+    if (req.body?.characterName !== undefined) updates.characterName = asString(req.body.characterName, "characterName");
+    if (req.body?.description !== undefined) updates.description = asString(req.body.description, "description");
+    const participant = await updateParticipant(prisma, req.event!.id, participantId, updates);
+    res.status(200).json(participant);
   });
 
   router.delete("/:eventId/participants/:participantId", async (req, res) => {
@@ -127,13 +111,6 @@ export function createEventsRouter(prisma: PrismaClient): Router {
   router.post("/:eventId/rounds", async (req, res) => {
     const round = await addRound(prisma, req.event!.id);
     res.status(201).json(round);
-  });
-
-  router.put("/:eventId/rounds/:roundNumber/suspects", async (req, res) => {
-    const roundNumber = asPositiveInt(Number(req.params.roundNumber), "roundNumber");
-    const suspectIds = asPositiveIntArray(req.body?.suspectIds, "suspectIds");
-    const round = await setRoundSuspects(prisma, req.event!.id, roundNumber, suspectIds);
-    res.status(200).json(round);
   });
 
   router.delete("/:eventId/rounds/:roundNumber", async (req, res) => {

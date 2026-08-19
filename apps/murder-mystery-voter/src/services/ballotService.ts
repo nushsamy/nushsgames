@@ -1,4 +1,4 @@
-import type { PrismaClient, Suspect } from "../../generated/prisma/client.ts";
+import type { PrismaClient } from "../../generated/prisma/client.ts";
 import {
   BallotNotFoundError,
   BallotAlreadyCastError,
@@ -7,11 +7,18 @@ import {
   ValidationError,
 } from "../errors/index.ts";
 
+/** Public ballot-facing view of a candidate -- deliberately excludes the participant's real name/email. */
+export interface BallotSuspect {
+  id: number;
+  characterName: string;
+  description: string | null;
+}
+
 export interface BallotView {
   participantName: string;
   eventTitle: string;
   roundNumber: number;
-  suspects: Suspect[];
+  suspects: BallotSuspect[];
 }
 
 async function loadBallotByToken(prisma: PrismaClient, token: string) {
@@ -41,9 +48,10 @@ export async function getBallotByToken(prisma: PrismaClient, token: string): Pro
   const ballot = await loadBallotByToken(prisma, token);
   assertVotable(ballot);
 
-  const suspects = await prisma.suspect.findMany({
-    where: { id: { in: ballot.round.suspectIds as number[] } },
+  const suspects = await prisma.mysteryParticipant.findMany({
+    where: { eventId: ballot.round.eventId },
     orderBy: { id: "asc" },
+    select: { id: true, characterName: true, description: true },
   });
 
   return {
@@ -73,8 +81,10 @@ export async function castVote(prisma: PrismaClient, token: string, suspectId: n
       throw new RoundNotOpenError("Voting hasn't opened for this round yet");
     }
 
-    const eligibleSuspectIds = ballot.round.suspectIds as number[];
-    if (!eligibleSuspectIds.includes(suspectId)) {
+    const suspect = await tx.mysteryParticipant.findFirst({
+      where: { id: suspectId, eventId: ballot.round.eventId },
+    });
+    if (!suspect) {
       throw new ValidationError("suspectId is not eligible for this round");
     }
 

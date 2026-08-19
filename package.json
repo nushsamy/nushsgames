@@ -19,12 +19,17 @@
     "dev:murder-mystery-voter": "npm run dev --workspace=apps/murder-mystery-voter",
     "db:up:murder-mystery-voter": "npm run db:up --workspace=apps/murder-mystery-voter",
     "db:down:murder-mystery-voter": "npm run db:down --workspace=apps/murder-mystery-voter",
-    "dev:spelling-bee-frontend": "npm run dev --prefix apps/spelling-bee/frontend",
-    "dev:murder-mystery-voter-frontend": "npm run dev --prefix apps/murder-mystery-voter/frontend",
-    "db:up:all": "npm run db:up && npm run db:up:murder-mystery-voter",
-    "db:down:all": "npm run db:down && npm run db:down:murder-mystery-voter",
+    "build:auth": "npm run build --workspace=apps/auth",
+    "start:auth": "npm run start --workspace=apps/auth",
+    "dev:auth": "npm run dev --workspace=apps/auth",
+    "db:up:auth": "npm run db:up --workspace=apps/auth",
+    "db:down:auth": "npm run db:down --workspace=apps/auth",
+    "build:web": "npm run build --workspace=apps/web",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "db:up:all": "npm run db:up && npm run db:up:murder-mystery-voter && npm run db:up:auth",
+    "db:down:all": "npm run db:down && npm run db:down:murder-mystery-voter && npm run db:down:auth",
     "predev:all": "npm run db:up:all",
-    "dev:all": "concurrently -n bee-api,bee-web,mystery-api,mystery-web -c blue,cyan,magenta,yellow \"npm run dev\" \"npm run dev:spelling-bee-frontend\" \"npm run dev:murder-mystery-voter\" \"npm run dev:murder-mystery-voter-frontend\""
+    "dev:all": "concurrently -n auth-api,bee-api,mystery-api,web -c green,blue,magenta,cyan \"npm run dev:auth\" \"npm run dev\" \"npm run dev:murder-mystery-voter\" \"npm run dev:web\""
   },
   "devDependencies": {
     "concurrently": "^9.1.0"

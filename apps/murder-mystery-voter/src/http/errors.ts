@@ -13,8 +13,6 @@ const DOMAIN_ERROR_STATUS: Record<string, number> = {
   BALLOT_NOT_FOUND: 404,
   BALLOT_ALREADY_CAST: 409,
   BALLOT_EXPIRED: 410,
-  EMAIL_ALREADY_REGISTERED: 409,
-  INVALID_CREDENTIALS: 401,
 };
 
 export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {

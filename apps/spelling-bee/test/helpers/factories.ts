@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import type { PrismaClient, SpellingBee, Participant } from "../../generated/prisma/client.ts";
 import { createBee, startBee, getBeeById } from "../../src/services/beeService.ts";
 import { addParticipant } from "../../src/services/participantService.ts";
@@ -12,13 +11,14 @@ export const DEFAULT_ROUND_WORDS: string[][] = [
   ["cherry", "date"],
 ];
 
-export async function createTestUser(prisma: PrismaClient) {
-  return prisma.user.create({
-    data: {
-      email: `${randomUUID()}@test.dev`,
-      passwordHash: "test-hash",
-    },
-  });
+let nextTestUserId = 1;
+
+/**
+ * Users now live in the separate @nushsgames/auth service's database, so there's no local
+ * table to insert into — just hand back a fresh opaque id, as if it came from that service.
+ */
+export async function createTestUser(_prisma: PrismaClient): Promise<{ id: number }> {
+  return { id: nextTestUserId++ };
 }
 
 export interface BuildBeeOptions {

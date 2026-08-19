@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { testPrisma } from "../helpers/prismaTestClient.ts";
 import { resetDatabase } from "../helpers/resetDb.ts";
-import { buildEvent, addRoundWithSuspects } from "../helpers/factories.ts";
+import { buildEvent } from "../helpers/factories.ts";
 import { startEvent, endEvent } from "../../src/services/eventService.ts";
 import { setAttendance } from "../../src/services/participantService.ts";
+import { addRound } from "../../src/services/roundService.ts";
 import { openRound, closeRound, getRoundTally } from "../../src/services/roundLifecycleService.ts";
 import { castVote } from "../../src/services/ballotService.ts";
 import { InvalidEventStateError, RoundAlreadyOpenError, ValidationError } from "../../src/errors/index.ts";
@@ -14,9 +15,8 @@ beforeEach(async () => {
 
 async function buildStartedEvent() {
   const built = await buildEvent(testPrisma);
-  const suspectIds = built.suspects.map((s) => s.id);
-  await addRoundWithSuspects(testPrisma, built.event.id, suspectIds);
-  await addRoundWithSuspects(testPrisma, built.event.id, suspectIds);
+  await addRound(testPrisma, built.event.id);
+  await addRound(testPrisma, built.event.id);
   await startEvent(testPrisma, built.event.id);
   return built;
 }
@@ -90,6 +90,15 @@ describe("round open/close", () => {
     const winner = tally.tally.find((t) => t.suspectId === built.suspects[0].id)!;
     expect(winner.count).toBe(ballots.length);
     expect(winner.percentage).toBe(100);
+  });
+
+  it("includes every participant as a suspect automatically, with no assignment step", async () => {
+    const built = await buildStartedEvent();
+    await setAttendance(testPrisma, built.event.id, built.participants.map((p) => p.id));
+    await openRound(testPrisma, built.event.id, 1);
+
+    const tally = await getRoundTally(testPrisma, built.event.id, 1);
+    expect(tally.tally.map((t) => t.suspectId).sort()).toEqual(built.participants.map((p) => p.id).sort());
   });
 
   it("cannot end an event while a round is still open", async () => {

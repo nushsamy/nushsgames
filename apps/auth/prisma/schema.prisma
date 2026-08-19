@@ -1,0 +1,20 @@
+// Prisma schema for the shared identity service used by every nushsgames app.
+// See prisma.config.ts for datasource url / migrations path configuration.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  @@map("users")
+}

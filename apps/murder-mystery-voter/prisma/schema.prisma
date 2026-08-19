@@ -28,28 +28,17 @@ enum BallotStatus {
   expired
 }
 
-model User {
-  id           Int      @id @default(autoincrement())
-  email        String   @unique
-  passwordHash String
-  createdAt    DateTime @default(now())
-
-  events MysteryEvent[]
-
-  @@map("users")
-}
-
 model MysteryEvent {
   id           Int         @id @default(autoincrement())
+  // References a user in the shared @nushsgames/auth service's database — no local FK,
+  // since that table lives in a separate database now.
   userId       Int
-  user         User        @relation(fields: [userId], references: [id])
   title        String
   status       EventStatus @default(created)
   totalRounds  Int         @default(0)
   currentRound Int         @default(0)
   createdAt    DateTime    @default(now())
 
-  suspects     Suspect[]
   participants MysteryParticipant[]
   rounds       MysteryRound[]
 
@@ -57,31 +46,26 @@ model MysteryEvent {
   @@map("mystery_events")
 }
 
-model Suspect {
-  id          Int          @id @default(autoincrement())
-  eventId     Int
-  event       MysteryEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  name        String
-  description String?
-
-  ballots Ballot[]
-
-  @@unique([eventId, name])
-  @@index([eventId])
-  @@map("suspects")
-}
-
+// A participant is both the real person voting and a possible suspect other participants can
+// accuse -- characterName/description are the in-game persona; name/email are how the host and
+// the email system reach the real person. There's no separate "suspect" entity: every participant
+// is a candidate in every round (see roundLifecycleService/ballotService, which treat "this
+// event's participants" as the suspect list for any round rather than storing it per round).
 model MysteryParticipant {
-  id          Int          @id @default(autoincrement())
-  eventId     Int
-  event       MysteryEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  name        String
-  email       String
-  isAttending Boolean      @default(true)
+  id            Int          @id @default(autoincrement())
+  eventId       Int
+  event         MysteryEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name          String
+  email         String
+  characterName String
+  description   String?
+  isAttending   Boolean      @default(true)
 
-  ballots Ballot[]
+  ballotsCast     Ballot[] @relation("BallotVoter")
+  ballotsReceived Ballot[] @relation("BallotSuspect")
 
   @@unique([eventId, email])
+  @@unique([eventId, characterName])
   @@index([eventId])
   @@map("mystery_participants")
 }
@@ -91,7 +75,6 @@ model MysteryRound {
   eventId     Int
   event       MysteryEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
   roundNumber Int
-  suspectIds  Json
   status      RoundStatus @default(pending)
 
   ballots Ballot[]
@@ -106,11 +89,11 @@ model Ballot {
   roundId        String
   round          MysteryRound       @relation(fields: [roundId], references: [id], onDelete: Cascade)
   participantId  Int
-  participant    MysteryParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  participant    MysteryParticipant @relation("BallotVoter", fields: [participantId], references: [id], onDelete: Cascade)
   token          String             @unique
   status         BallotStatus       @default(pending)
   votedSuspectId Int?
-  votedSuspect   Suspect?           @relation(fields: [votedSuspectId], references: [id])
+  votedSuspect   MysteryParticipant? @relation("BallotSuspect", fields: [votedSuspectId], references: [id])
   createdAt      DateTime           @default(now())
   castAt         DateTime?
   emailError     String?

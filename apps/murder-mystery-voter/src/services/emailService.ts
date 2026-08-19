@@ -9,8 +9,8 @@ export interface SendResult {
 }
 
 function votingUrlFor(token: string): string {
-  const base = process.env.FRONTEND_URL ?? "http://localhost:5174";
-  return `${base.replace(/\/$/, "")}/vote/${token}`;
+  const base = process.env.FRONTEND_URL ?? "http://localhost:5173";
+  return `${base.replace(/\/$/, "")}/mystery/vote/${token}`;
 }
 
 export async function sendBallotEmail(

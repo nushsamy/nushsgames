@@ -31,18 +31,6 @@ export function asPositiveInt(value: unknown, fieldName: string): number {
   return value;
 }
 
-export function asPositiveIntArray(value: unknown, fieldName: string): number[] {
-  if (
-    !Array.isArray(value) ||
-    value.length === 0 ||
-    !value.every((v) => typeof v === "number" && Number.isInteger(v) && v > 0)
-  ) {
-    throw new ValidationError(`${fieldName} must be a non-empty array of positive integers`);
-  }
-  return value;
-}
-
-/** Like asPositiveIntArray, but an empty array is a valid value (e.g. "no one is attending"). */
 export function asIntArray(value: unknown, fieldName: string): number[] {
   if (!Array.isArray(value) || !value.every((v) => typeof v === "number" && Number.isInteger(v) && v > 0)) {
     throw new ValidationError(`${fieldName} must be an array of positive integers`);

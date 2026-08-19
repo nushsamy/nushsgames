@@ -70,24 +70,16 @@ export async function startEvent(prisma: PrismaClient, eventId: number): Promise
       );
     }
 
-    const [suspectCount, participantCount, rounds] = await Promise.all([
-      tx.suspect.count({ where: { eventId } }),
+    const [participantCount, roundCount] = await Promise.all([
       tx.mysteryParticipant.count({ where: { eventId } }),
-      tx.mysteryRound.findMany({ where: { eventId } }),
+      tx.mysteryRound.count({ where: { eventId } }),
     ]);
 
-    if (suspectCount === 0) {
-      throw new ValidationError(`Event ${eventId} has no suspects`);
-    }
     if (participantCount === 0) {
       throw new ValidationError(`Event ${eventId} has no participants`);
     }
-    if (rounds.length === 0) {
+    if (roundCount === 0) {
       throw new ValidationError(`Event ${eventId} has no rounds`);
-    }
-    const emptyRound = rounds.find((round) => (round.suspectIds as number[]).length === 0);
-    if (emptyRound) {
-      throw new ValidationError(`Round ${emptyRound.roundNumber} has no suspects assigned`);
     }
 
     return tx.mysteryEvent.update({

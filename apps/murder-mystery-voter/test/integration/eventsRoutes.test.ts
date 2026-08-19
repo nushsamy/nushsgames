@@ -34,7 +34,7 @@ describe("ownership", () => {
 });
 
 describe("event + builder flow over HTTP", () => {
-  it("creates an event, adds a suspect and participant, builds a round, and starts it", async () => {
+  it("creates an event, adds a participant (who doubles as a suspect), builds a round, and starts it", async () => {
     const user = await createTestUser(testPrisma);
 
     const eventRes = await request(server.app)
@@ -44,26 +44,14 @@ describe("event + builder flow over HTTP", () => {
     expect(eventRes.status).toBe(201);
     const eventId = eventRes.body.id;
 
-    const suspectRes = await request(server.app)
-      .post(`/api/events/${eventId}/suspects`)
-      .set(authHeader(user.id))
-      .send({ name: "The Keeper" });
-    expect(suspectRes.status).toBe(201);
-
     const participantRes = await request(server.app)
       .post(`/api/events/${eventId}/participants`)
       .set(authHeader(user.id))
-      .send({ name: "Jo", email: "jo@example.com" });
+      .send({ name: "Jo", email: "jo@example.com", characterName: "The Keeper" });
     expect(participantRes.status).toBe(201);
 
     const roundRes = await request(server.app).post(`/api/events/${eventId}/rounds`).set(authHeader(user.id));
     expect(roundRes.status).toBe(201);
-
-    const setSuspectsRes = await request(server.app)
-      .put(`/api/events/${eventId}/rounds/1/suspects`)
-      .set(authHeader(user.id))
-      .send({ suspectIds: [suspectRes.body.id] });
-    expect(setSuspectsRes.status).toBe(200);
 
     const startRes = await request(server.app).post(`/api/events/${eventId}/start`).set(authHeader(user.id));
     expect(startRes.status).toBe(200);
@@ -84,13 +72,9 @@ describe("event + builder flow over HTTP", () => {
 
 describe("attendance + round lifecycle over HTTP", () => {
   it("takes attendance, opens a round, and reports a tally excluding absentees", async () => {
-    const { event, userId, participants, suspects } = await buildEvent(testPrisma);
+    const { event, userId, participants } = await buildEvent(testPrisma);
 
-    const roundRes = await request(server.app).post(`/api/events/${event.id}/rounds`).set(authHeader(userId));
-    await request(server.app)
-      .put(`/api/events/${event.id}/rounds/${roundRes.body.roundNumber}/suspects`)
-      .set(authHeader(userId))
-      .send({ suspectIds: suspects.map((s) => s.id) });
+    await request(server.app).post(`/api/events/${event.id}/rounds`).set(authHeader(userId));
     await request(server.app).post(`/api/events/${event.id}/start`).set(authHeader(userId));
 
     const attendanceRes = await request(server.app)

@@ -16,21 +16,11 @@ enum BeeStatus {
   completed
 }
 
-model User {
-  id           Int      @id @default(autoincrement())
-  email        String   @unique
-  passwordHash String
-  createdAt    DateTime @default(now())
-
-  spellingBees SpellingBee[]
-
-  @@map("users")
-}
-
 model SpellingBee {
   id           Int       @id @default(autoincrement())
+  // References a user in the shared @nushsgames/auth service's database — no local FK,
+  // since that table lives in a separate database now.
   userId       Int
-  user         User      @relation(fields: [userId], references: [id])
   title        String
   totalRounds  Int       @default(0)
   gamekey      String?   @unique
